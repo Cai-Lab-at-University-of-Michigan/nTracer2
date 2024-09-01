@@ -5,6 +5,7 @@ import urllib
 import json
 import requests
 import time
+import posixpath
 from ntracer.utils.timing import print_time
 
 LOGGER_TAG = "CDN"
@@ -18,7 +19,7 @@ def download_raw(session: requests.Session, res: int, params: list, url: str):
     content = response.content
     dt = time.time() - s_time
     return params, content, dt
-    
+
 class CdnArray:
     class CdnResolutionItem:
         def __init__(self, parent, res_key, session, drop_channel_dim=False):
@@ -108,11 +109,12 @@ class CdnArray:
         self.res_cache = dict()
         self.session = requests.Session()
 
+        info_url = posixpath.join(self.url, "info")
         try:
-            response = urllib.request.urlopen(self.url + "info")
+            response = urllib.request.urlopen(info_url)
             self.metadata = json.loads(response.read())
-        except:
-            raise ConnectionError("Failed to load metadata from URL")
+        except Exception as e:
+            raise ConnectionError(f"Failed to load metadata from URL: {info_url}")
 
         try:
             self.channel_count = int(self.metadata["num_channels"])
@@ -126,7 +128,7 @@ class CdnArray:
             raise KeyError("Failed to parse metadata")
 
         if self.channel_count > 1 and drop_channel_dim:
-                raise UnsupportedOperation("Cannot drop channel dimension when channel count is more than 1")
+            raise UnsupportedOperation("Cannot drop channel dimension when channel count is more than 1")
         self.drop_channel_dim = drop_channel_dim
 
         if self.metadata["type"].strip() != "image":

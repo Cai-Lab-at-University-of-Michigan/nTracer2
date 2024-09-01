@@ -38,12 +38,12 @@ class ImageFunctions:
 
             s.layers["image"] = neuroglancer.viewer_state.ImageLayer(
                 # source=coords.layer, #need to make this nicer?
-                source=state.precomputed_base,
+                source=state.precomputed_base.geturl(),
                 shader=Constants.DEFAULT_SHADER,
             )
 
             s.layers["annotate_pre"] = neuroglancer.viewer_state.SegmentationLayer(
-                source=f"{state.precomputed_annotation_base}/skeleton",
+                source=f"{state.precomputed_base.geturl()}/skeleton",
                 skeleton_rendering=neuroglancer.viewer_state.SkeletonRenderingOptions(
                     mode2d="lines", line_width2d=1
                 ),

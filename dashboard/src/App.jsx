@@ -10,8 +10,7 @@ import { SocketContext } from './Context'
 import { useEffect, useState, useReducer, useRef } from 'react'
 import styled from 'styled-components/macro'
 import { io } from 'socket.io-client';
-import port from './cfg.jsx'
-export const BASE_URL = 'http://localhost:8085'
+export const BASE_URL = `http://localhost:${process.env.REACT_APP_SERVER_PORT}`
 
 function App() {
   const [statusMessage, setStatusMessage] = useState('');

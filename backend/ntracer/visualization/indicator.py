@@ -23,8 +23,8 @@ class IndicatorFunctions:
 
         new_point = mean_shift(
             action_state.mouse_voxel_coordinates,
-            os.environ["PRECOMPUTED_URL_DOCKER"][14:-4],
-            os.environ["DATASET_ID"],
+            state.cdn_url.geturl(),
+            state.dataset_id,
         )
         state.endingPoint = new_point
         print("Second mouse position:", state.endingPoint)

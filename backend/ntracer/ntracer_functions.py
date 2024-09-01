@@ -1,6 +1,7 @@
 import json
 import os
 import random
+import asyncio
 
 # neuroglancer libraries
 import neuroglancer
@@ -25,6 +26,7 @@ from ntracer.state_injector import inject_state, inject_state_and_socketio
 from ntracer.tracing.mean_shift import mean_shift
 from ntracer.visualization.image import ImageFunctions
 from ntracer.visualization.indicator import IndicatorFunctions
+from ntracer.utils.timing import print_time
 
 
 class NtracerFunctions:
@@ -43,8 +45,8 @@ class NtracerFunctions:
         if not no_mean_shift:
             x = mean_shift(
                 action_state.mouse_voxel_coordinates,
-                os.environ["PRECOMPUTED_URL_DOCKER"][14:],
-                os.environ["DATASET_ID"],
+                state.cdn_url.geturl(),
+                state.dataset_id,
             )
             print(x)
             new_point = x
@@ -161,10 +163,11 @@ class NtracerFunctions:
             IndicatorFunctions.draw_cyan_box(s)
 
     @staticmethod
+    @print_time("DB")
     async def download_from_database(
         coords: Coords,
     ) -> None:  # retrieves all saved annotations from database
-        NUM_PREFETCH = 10
+        NUM_PREFETCH = 5
 
         res = coords.cdn_helper.get_all_neurons()
         coords.new_state()
@@ -174,12 +177,14 @@ class NtracerFunctions:
             coords.roots[neuron_id] = Neuron()
             coords.roots[neuron_id].add_branch(TP(0, 0, 0, 0, 0))
 
-        for neuron_id, _ in res[-NUM_PREFETCH:]:
-            neuron = await coords.cdn_helper.get_swc(neuron_id, True)
+        prefetched_neurons = await asyncio.gather(*[coords.cdn_helper.get_swc(neuron_id, True) for neuron_id, _ in res[-NUM_PREFETCH:]])
+        for i, (neuron_id, _) in enumerate(res[-NUM_PREFETCH:]):
+            neuron = prefetched_neurons[i]
             if not isinstance(neuron, Neuron):
                 raise Warning("Cannot load neuron from swc")
+            else:
+                coords.roots[neuron_id] = neuron
 
-            coords.roots[neuron_id] = neuron
 
     @staticmethod
     @inject_state
@@ -356,7 +361,7 @@ class NtracerFunctions:
         with state.viewer.txn() as s:
             nonce = random.getrandbits(16)
             s.layers["annotate_pre"] = neuroglancer.viewer_state.SegmentationLayer(
-                source=f"{state.precomputed_annotation_base}+{nonce}/skeleton/",
+                source=f"{state.precomputed_base.geturl()}+{nonce}/skeleton/",
                 skeleton_rendering=neuroglancer.viewer_state.SkeletonRenderingOptions(
                     mode2d="lines", line_width2d=1
                 ),

@@ -9,7 +9,7 @@ from flask_socketio import SocketIO
 from ngauge import Neuron
 from ngauge import TracingPoint as TP
 
-from algorithm.astar.tracing import get_trace as astar
+from algorithm.astar.tracing import get_trace_cdn as astar
 from ntracer.helpers.ngauge_helper import NeuronHelper, TracingPointHelper
 from ntracer.helpers.tracing_data_helper import Action, ActionType
 from ntracer.ntracer_functions import NtracerFunctions
@@ -35,7 +35,8 @@ class TracingFunctions:
 
         print("Running Astar:", state.startingPoint, state.endingPoint)
         new_path = astar(
-            state.coords,
+            state.cdn_url.geturl(),
+            state.dataset_id,
             state.startingPoint,
             state.endingPoint,
             state.is_multi,
@@ -187,7 +188,8 @@ class TracingFunctions:
 
         t2 = time()
         new_path = astar(
-            coords,
+            state.cdn_url.geturl(),
+            state.dataset_id,
             state.startingPoint,
             state.endingPoint,
             state.is_multi,
@@ -288,7 +290,8 @@ class TracingFunctions:
             coords.scale,
         )
         new_path = astar(
-            coords,
+            state.cdn_url.geturl(),
+            state.dataset_id,
             st,
             end,
             state.is_multi,

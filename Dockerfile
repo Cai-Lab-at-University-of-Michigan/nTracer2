@@ -1,3 +1,5 @@
+ARG server_port=8085
+
 FROM python:3.10-slim as backend-builder
 RUN apt-get update && apt-get install -y --no-install-recommends gcc g++
 RUN pip --no-cache-dir install cython
@@ -14,6 +16,8 @@ RUN python compile_cython.py build_ext --inplace
 #RUN g++ -O3 app.cpp -Iasio_include -lpthread -lsqlite3 -lz -lx264 -lzstd -std=c++17
 
 FROM node:gallium-alpine3.18 as dashboard-builder
+ARG server_port
+ENV REACT_APP_SERVER_PORT=$server_port
 COPY dashboard /app
 WORKDIR /app
 RUN npm install
@@ -22,20 +26,17 @@ RUN npm run build
 FROM python:3.10-slim
 RUN mkdir /app
 
-ENV INTERNAL_NEUROGLANCER_ADDRESS=0.0.0.0
-ENV INTERNAL_NEUROGLANCER_PORT=8050
-ENV INTERNAL_SERVER_PORT=8085
+ARG server_port
+ARG neuroglancer_port=8050
+ARG cdn_url=https://sonic2.cai-lab.org/data/
+ARG dataset_id=packed2
+ARG public_url=http://localhost
 
-ENV DATABASE_URL=https://sonic2.cai-lab.org/data/
-ENV PRECOMPUTED_URL=precomputed://https://sonic2.cai-lab.org/data/
-ENV PRECOMPUTED_URL_DOCKER=precomputed://https://sonic2.cai-lab.org/data/
-ENV PRECOMPUTED_ANNOTATION_URL=precomputed://https://sonic2.cai-lab.org/data/
-
-ENV NEUROGLANCER_TOKEN=cailab1357
-ENV NEUROGLANCER_PORT=8050
-ENV PUBLIC_URL=http://localhost
-
-ENV DATASET_ID=packed2
+ENV CDN_URL=$cdn_url
+ENV NEUROGLANCER_PORT=$neuroglancer_port
+ENV SERVER_PORT=$server_port
+ENV PUBLIC_URL=$public_url
+ENV DATASET_ID=$dataset_id
 
 ENV PATH=/root/.local/bin:$PATH
 RUN apt-get update && apt-get install -y --no-install-recommends libx264-dev 
@@ -51,7 +52,7 @@ COPY --from=dashboard-builder /app/build /app/dashboard
 COPY /landing /app/landing
 WORKDIR /app
 
-EXPOSE 8085
-EXPOSE 8050
+EXPOSE $neuroglancer_port
+EXPOSE $server_port
 
-CMD ["python", "main.py"]
+CMD ["python", "-u", "main.py"]

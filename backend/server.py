@@ -10,7 +10,8 @@ import logging
 import os
 import webbrowser
 import asyncio
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, urlparse
+import posixpath
 
 import neuroglancer.webdriver
 from neuroglancer.viewer_config_state import ConfigState
@@ -46,6 +47,7 @@ app.add_middleware(
 
 app.mount("/dashboard", StaticFiles(directory="dashboard", html=True), name="static")
 user_id = 0
+TOKEN = "ntracer2"
 
 def clear_points():
     IndicatorFunctions.clear_points()
@@ -68,15 +70,13 @@ async def index() -> RedirectResponse:
             "annotationColor", optional(text_type)
         )
 
-    if "INTERNAL_NEUROGLANCER_ADDRESS" in os.environ:
-        neuroglancer.set_server_bind_address(
-            os.environ["INTERNAL_NEUROGLANCER_ADDRESS"],
-            int(os.environ.get("INTERNAL_NEUROGLANCER_PORT", 8090)),
-        )
+    neuroglancer.set_server_bind_address(
+        bind_address="0.0.0.0",  # Allow access from outside Docker container
+        bind_port=state.neuroglancer_port,
+    )
 
     # runs image layer functions
-    token = os.environ["NEUROGLANCER_TOKEN"]+f"_{user_id}"
-    viewer = neuroglancer.Viewer(token=token)
+    viewer = neuroglancer.Viewer(token=TOKEN)
     user_id+=1
     state.viewer = viewer
     ImageFunctions.image_init()
@@ -130,9 +130,12 @@ async def index() -> RedirectResponse:
 
     # webbrowser.open("{}dashboard/".format(request.host_url), new=2)
 
-    viewer_url = quote_plus(f"{os.environ['PUBLIC_URL']}:{os.environ['NEUROGLANCER_PORT']}/v/{token}/")
+    viewer_url = quote_plus(
+        urlparse(posixpath.join(os.environ["PUBLIC_URL"], f"v/{TOKEN}/"))
+        ._replace(netloc=f"{urlparse(os.environ['PUBLIC_URL']).hostname}:{state.neuroglancer_port}")
+        .geturl()
+    )
     dashboard_url = quote_plus("/dashboard")
-    
     return RedirectResponse(
         f"/viewer?viewer={viewer_url}&dashboard={dashboard_url}"
     )

@@ -1,0 +1,9 @@
+# Generate basic docker compose with ports
+version: '3.8'
+
+services:
+  ntracer2:
+    build: .
+    ports:
+      - "8050:8050"
+      - "8085:8085"

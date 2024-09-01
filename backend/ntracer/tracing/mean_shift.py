@@ -1,6 +1,7 @@
 import requests
+from ntracer.utils.timing import print_time
 
-
+@print_time("TRACING")
 def mean_shift(
     pt: tuple[float, float, float], server_url: str, dataset_id: str
 ) -> tuple[int, int, int]:

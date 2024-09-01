@@ -3,8 +3,22 @@ from time import time
 from math import floor, ceil
 import multiprocessing
 import requests
+import posixpath
 # cimport numpy as np
 from algorithm.astar.AstarWrapper import AstarWrapper as Astar
+
+def get_trace_cdn(server_url: str, dataset_id: str, start, end, is_multi, is_soma = False, xy_extension = 21, z_extension = 7, rScale = 10, seg_len = 25, tracing_sensitivity = 5):
+    url = posixpath.join(server_url, dataset_id, "tracing", f"{start[0]},{start[1]},{start[2]}", f"{end[0]},{end[1]},{end[2]}")
+    try:
+        res = requests.get(url)
+        if res.status_code == 200:
+            return [[int(p) for p in x.split(',')] for x in res.text.split('\n')[:-1]]
+        else:
+            raise Exception(f"Received error status code {res.status_code} from CDN astar trace with message: {res.text}")
+    except Exception as e:
+        print("Cannot perform CDN astar trace with url:", url)
+        print(e)
+        return []
 
 
 def get_trace(coords, start, end, is_multi, is_soma = False, xy_extension = 21, z_extension = 7, rScale = 10, seg_len = 25, tracing_sensitivity = 5):
