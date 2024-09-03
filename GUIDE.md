@@ -49,25 +49,82 @@ An interactive tool for reconstructing and analyzing complex neural networks fro
 
 ## Control Panel Layout
 
-Familiarize yourself with different menu options and command buttons in the control panel. Most of the menus will display a short description as a rollover text. Some of the basic menus are briefly described below.
+Familiarize yourself with different menu options and command buttons in the control panel. Most of the menus will display a short description as a rollover text. Some of the basic menus are briefly described below:
 
 ![](docs/tracing_window.png)
 
-1.	Trace Diagram
-The overall architecture of the tracing data is displayed as a tree diagram
+1.	**Trace heiarchy table.** In this user interface element, each neuron is displayed using a tree structure to visualize the branching of the cell. Each branch is named with the number of the neuron first, followed by the index of each branch. Each "folder" can be opened to reveal the downstream branches.
 
-2.	Toolbox (Tracing/Edit/Overlay)
-Change the settings in each window as you perform your tracings and data analysis. We will go over each menu as part of the following tutorials: 
-Tracing (chapter 3)
-Editing and overlay (chapter 4)
+2.	**Toolbox (Tracing/Edit/Overlay).** Each table of this element contains a set of tools for interacting with the neuron tracing environment, as described one-by-one later in this page.
 
-3.	Traced Points Databox
-This window displays the vector information for the selected trace as well as the synapse and connectivity data corresponding to each point
+3.	**Traced Points Table.** This window displays the coordinates of each point which has been traced for the selected branch above, including the synapse and connectivity data corresponding to each point.
 
-4.	Soma Databox
-Traces of somas are organized and displayed by z-stack (1:100 means soma tracing of neuron #1 in image slice 100)
+4.	**Soma Table.** Soma traces are organized and displayed by z-stack in this table. e.g, `1:100` means soma tracing of neuron #1 in image slice 100.
 
 
 ## Tracing Tutorial
 
+Once the image file is loaded, you can begin tracing. You may start by tracing any neuron of your choosing. Here, we will start by tracing a clearly identifiable soma. The computer automatically determines the “best-fit” path between two points based on color and intensity information. 
+
 ### Soma tracing
+
+The soma tracing method can be used to identify the 3D structure of a cell body 
+
+1. First, `Ctrl-left click` anywhere on the soma outline. A red box will appear marking this point as the starting point.
+2. Next, `Ctrl-left click` again to mark the end point of the trace. A blue box will appear marking this point as the ending point.
+3. Press `s` or click "Soma" on tracing menu toolbox to execute the soma tracing method. This will perform an A* search between the start and end points.
+4. The path will appear as a red line, and the end point automatically becomes the new starting point (red box).
+5. Continue tracing by clicking along the somatic boundary in the same manner.
+6. Before starting to trace the soma at a new z position, `Ctrl+right click` to deselect the last tracing you just made while keeping the root neuron selected. The red box from the previous slice will disappear and allow you to assign a new starting point on the new z position.
+7. To finish, press “Complete” in the Soma(s) box in the editing dashboard. The program automatically connects the most recent endpoint to the first starting point.
+
+**Note:** You can undo tracing by pressing `Ctrl-z`, and redo tracing by pressing `Ctrl-y`. Upon creating a trace, you will see your first soma trace listed in the control panel.
+
+AAAA
+In this example, the trace was done for a soma in image slice #6326. This new entry created a new neuron <114> in the Tracing Diagram. Additional traces of this neuron will be listed under <114> as they are generated, and each entry will be accessible through the Soma and Tracing Points windows.
+
+BBBB
+For soma traces, entries appear as numbers in the form A:B. ‘A’ represents the neuron identity (1 as this trace is part of the first neuron to be traced) and ‘B’ represents the z- coordinate.
+
+### Neurite Tracing
+
+Below, we will describe how to perform neurite tracing in two forms: linear tracing where a single projection is traced, followed by branched tracing for handing bifurcation points.
+
+#### Linear Tracing
+While the soma can only be traced within each z slice, you can move freely through different z slices when tracing neurites. nTracer2 determines the path in-between the starting point and the end point in 3D.
+
+Here, we will show you how to trace a neurite.
+1.	`Ctrl + right-click` to deselect all previous entries. 
+2.	Select a starting point. If tracing a projection from a soma, start from the soma by `double left-click` on the soma trace. If not, `Ctrl + left-click` where the neurite first appears with to define the starting point (red box).
+3.	Follow the path of the neurite, scrolling through the z-stack if necessary, and `Ctrl + left-click` once more to set the end point (blue box). 
+4.	Press the `a` hotkey to connect the points and create an entry as a neurite. The points should appear 
+5.	Continue tracing by repeating the above steps until you reach the end of the neurite.
+
+#### Branched Tracing
+
+To perform branched tracing, you must first begin with a linear trace performed using the above.
+
+1. Begin by selecting a bifurcation either by selecting a coordinate from the tracing table UI element or by using the `INSERT` key to select a neuron plotted in Neuroglancer.
+2. Continue 
+
+## Toolbox Utilities
+
+### Neuron Editing
+
+<img src="docs/nt2_editing.png" height="400" />
+
+The neuron editing panel is grouped into four categories. The "Branch" utilities are used for manipulating the structure of branches, such as combining and spliting neuron branches. "Delete" tools can be used to remove tracing records from the table. The "Combine Multiple" button can be used for merging multiple neurons. Finally, the "Complete" button under Soma can be used for filling in the gaps in a Soma tracing.
+
+### Modifying Overlay Settings
+
+<img src="docs/nt2_overlay.png" height="400"/>
+
+The Overlay toolbox gives you the option to change the visual output of the traces. You can adjust the overlay to help make the tracing process easier, create a convincing 3D representation of your data, highlight and/or hide different elements of traces. The "All Traced" button gives you the option of adjusting the overlay settings for your entire tracing. Select different components to have them in the image viewer. Selecting ‘All Points’ will show tracings from the entire stack as a single plane. The "Selected" button will adjust the overlay to only show the selected neuron.
+
+### Tuning Tracing
+
+<img src="docs/nt2_tracing.png" height="400" />
+
+### SWC Export
+
+<img src="docs/nt2_SWC.png" height="400"/>
