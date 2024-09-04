@@ -125,6 +125,10 @@ The Overlay toolbox gives you the option to change the visual output of the trac
 
 <img src="docs/nt2_tracing.png" height="400" />
 
+The "Tracing" menu contains sensitivity settings for the tracing algorithms.
+
 ### SWC Export
 
 <img src="docs/nt2_SWC.png" height="400"/>
+
+The "SWC" menu can be used for exporting neurons or importing them using a SWC file.
