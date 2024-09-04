@@ -1,5 +1,6 @@
 /* style.css */
-body, html {
+body,
+html {
     margin: 0;
     padding: 0;
     font-family: Arial, sans-serif;
@@ -9,7 +10,8 @@ header {
     background-color: #EFEDE3;
     color: #fff;
     padding: 5px 0;
-    position: sticky;
+    position: inherit;
+    /* sticky */
     top: 0;
     z-index: 1000;
 }
@@ -17,26 +19,34 @@ header {
 nav {
     display: flex;
     justify-content: space-between;
-    align-items: center; /* This ensures vertical alignment */
+    align-items: center;
+    /* This ensures vertical alignment */
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 20px;
 }
 
 .logo {
-    height: 80px; /* Adjust the size as needed */
-    width: auto; /* This will maintain the aspect ratio */
+    height: 80px;
+    /* Adjust the size as needed */
+    width: auto;
+    /* This will maintain the aspect ratio */
     margin-right: 20px;
 }
 
 #datasetFrame {
-    position: absolute; /* Position it over the heroSection or main */
+    position: absolute;
+    /* Position it over the heroSection or main */
     top: 0;
     left: 0;
-    width: 100%; /* Cover the full area */
-    height: 100%; /* Adjust based on your layout */
-    z-index: 2; /* Ensure it's above the background */
-    display: none; /* Initially hidden */
+    width: 100%;
+    /* Cover the full area */
+    height: 100%;
+    /* Adjust based on your layout */
+    z-index: 2;
+    /* Ensure it's above the background */
+    display: none;
+    /* Initially hidden */
 }
 
 .hero {
@@ -47,11 +57,15 @@ nav {
     height: 90vh;
     text-align: center;
     /* background-color: #282626; */
-    color: #ffffff; /* Change text color to white for better readability, if necessary */
-    padding: 100px 0; /* Add padding to ensure content does not touch the edges */
-    position: relative; /* This is needed to position the pseudo-element correctly */
+    color: #ffffff;
+    /* Change text color to white for better readability, if necessary */
+    padding: 100px 0;
+    /* Add padding to ensure content does not touch the edges */
+    position: relative;
+    /* This is needed to position the pseudo-element correctly */
     z-index: 1;
 }
+
 .hero::before {
     content: '';
     position: absolute;
@@ -59,35 +73,45 @@ nav {
     right: 0;
     bottom: 0;
     left: 0;
-    background: rgba(0, 0, 0, 0.5); /* Adjust the color and opacity to your liking */
-    z-index: -1; /* Ensures the overlay is behind the content */
+    background: rgba(0, 0, 0, 0.5);
+    /* Adjust the color and opacity to your liking */
+    z-index: -1;
+    /* Ensures the overlay is behind the content */
 }
 
 /* Add to your existing style.css */
 /* Dropdown Button */
 .dropbtn {
     padding: 10px 20px;
-    font-size: 16px; /* Match the font size to other buttons */
+    font-size: 16px;
+    /* Match the font size to other buttons */
     border: none;
-    background-color: #f9f9f9; /* Light grey background, you can change this */
-    color: #333; /* Dark grey text, for contrast */
+    background-color: #f9f9f9;
+    /* Light grey background, you can change this */
+    color: #333;
+    /* Dark grey text, for contrast */
     cursor: pointer;
 }
 
 /* The container <div> - needed to position the dropdown content */
 .dropdown {
     position: relative;
-    display: inline-block; /* Necessary for proper positioning next to "About" button */
+    display: inline-block;
+    /* Necessary for proper positioning next to "About" button */
 }
 
 /* Dropdown Content (Hidden by Default) */
 .dropdown-content {
     display: none;
     position: absolute;
-    background-color: #f9f9f9; /* Same as dropdown button for consistency */
-    min-width: 160px; /* Set min-width to match or exceed the dropdown button width */
-    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); /* Adds a shadow for depth */
-    z-index: 1; /* Ensures dropdown is on top of other elements */
+    background-color: #f9f9f9;
+    /* Same as dropdown button for consistency */
+    min-width: 160px;
+    /* Set min-width to match or exceed the dropdown button width */
+    box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+    /* Adds a shadow for depth */
+    z-index: 1;
+    /* Ensures dropdown is on top of other elements */
 }
 
 /* Links inside the dropdown */
@@ -95,18 +119,26 @@ nav {
     color: black;
     padding: 12px 16px;
     text-decoration: none;
-    display: block; /* Makes each link fill the container */
-    text-align: left; /* Aligns text to the left */
+    display: block;
+    /* Makes each link fill the container */
+    text-align: left;
+    /* Aligns text to the left */
 }
 
 /* Change color of dropdown links on hover */
-.dropdown-content a:hover {background-color: #ddd;}
+.dropdown-content a:hover {
+    background-color: #ddd;
+}
 
 /* Show the dropdown menu on hover */
-.dropdown:hover .dropdown-content {display: block;}
+.dropdown:hover .dropdown-content {
+    display: block;
+}
 
 /* Change the background color of the dropdown button when the dropdown content is shown */
-.dropdown:hover .dropbtn {background-color: #bfbfbf;}
+.dropdown:hover .dropbtn {
+    background-color: #bfbfbf;
+}
 
 
 /* New Container for Dropdowns */
@@ -117,8 +149,10 @@ nav {
 
 /* The container <div> - needed to position the dropdown content */
 .dropdown {
-    margin-right: 10px; /* Adds space between the dropdowns if needed */
+    margin-right: 10px;
+    /* Adds space between the dropdowns if needed */
 }
+
 /* Ensure the last dropdown doesn't have margin-right */
 .dropdown:last-last-child {
     margin-right: 0;
@@ -128,10 +162,14 @@ nav {
 .dropdown-content {
     display: none;
     position: absolute;
-    background-color: #f9f9f9; /* Same as dropdown button for consistency */
-    min-width: 160px; /* Set min-width to match or exceed the dropdown button width */
-    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); /* Adds a shadow for depth */
-    z-index: 1; /* Ensures dropdown is on top of other elements */
+    background-color: #f9f9f9;
+    /* Same as dropdown button for consistency */
+    min-width: 160px;
+    /* Set min-width to match or exceed the dropdown button width */
+    box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+    /* Adds a shadow for depth */
+    z-index: 1;
+    /* Ensures dropdown is on top of other elements */
 }
 
 /* Links inside the dropdown */
@@ -139,93 +177,136 @@ nav {
     color: black;
     padding: 12px 16px;
     text-decoration: none;
-    display: block; /* Makes each link fill the container */
-    text-align: left; /* Aligns text to the left */
+    display: block;
+    /* Makes each link fill the container */
+    text-align: left;
+    /* Aligns text to the left */
 }
 
 /* Change color of dropdown links on hover */
-.dropdown-content a:hover {background-color: #ddd;}
+.dropdown-content a:hover {
+    background-color: #ddd;
+}
 
 /* Show the dropdown menu on hover */
-.dropdown:hover.dropdown-content {display: block;}
+.dropdown:hover.dropdown-content {
+    display: block;
+}
 
 /* Change the background color of the dropdown button when the dropdown content is shown */
-.dropdown:hover .dropbtn {background-color: #bfbfbf;}
+.dropdown:hover .dropbtn {
+    background-color: #bfbfbf;
+}
 
 button#togglenTracer2 {
     padding: 10px 20px;
-    background-color: transparent; /* Makes the background transparent */
-    color: #000; /* Sets the text color to black */
-    border: 2px solid #000; /* Adds a black border */
+    background-color: transparent;
+    /* Makes the background transparent */
+    color: #000;
+    /* Sets the text color to black */
+    border: 2px solid #000;
+    /* Adds a black border */
     border-radius: 5px;
     cursor: pointer;
     transition: all 0.3s;
-    font-weight: bold; /* Makes the font bold */
-    font-size: 18px; /* Increases the font size */
+    font-weight: bold;
+    /* Makes the font bold */
+    font-size: 18px;
+    /* Increases the font size */
 }
+
 button#togglenTracer2:hover {
-    background-color: #000; /* Changes background to black on hover */
-    color: #fff; /* Changes text color to white on hover */
+    background-color: #000;
+    /* Changes background to black on hover */
+    color: #fff;
+    /* Changes text color to white on hover */
 }
 
 button#googleSignIn {
     padding: 10px 20px;
-    background-color: transparent; /* Makes the background transparent */
-    color: #000; /* Sets the text color to black */
-    border: 2px solid #000; /* Adds a black border */
+    background-color: transparent;
+    /* Makes the background transparent */
+    color: #000;
+    /* Sets the text color to black */
+    border: 2px solid #000;
+    /* Adds a black border */
     border-radius: 5px;
     cursor: pointer;
     transition: all 0.3s;
-    font-weight: bold; /* Makes the font bold */
-    font-size: 18px; /* Increases the font size */
+    font-weight: bold;
+    /* Makes the font bold */
+    font-size: 18px;
+    /* Increases the font size */
 }
+
 button#googleSignIn:hover {
-    background-color: #000; /* Changes background to black on hover */
-    color: #fff; /* Changes text color to white on hover */
+    background-color: #000;
+    /* Changes background to black on hover */
+    color: #fff;
+    /* Changes text color to white on hover */
 }
 
 .nav-button {
     padding: 10px 20px;
-    background-color: transparent; /* Makes the background transparent */
-    color: #000; /* Sets the text color to black */
-    border: 2px solid #000; /* Adds a black border */
+    background-color: transparent;
+    /* Makes the background transparent */
+    color: #000;
+    /* Sets the text color to black */
+    border: 2px solid #000;
+    /* Adds a black border */
     border-radius: 5px;
     cursor: pointer;
     transition: all 0.3s;
-    font-weight: bold; /* Makes the font bold */
-    font-size: 18px; /* Increases the font size */
+    font-weight: bold;
+    /* Makes the font bold */
+    font-size: 18px;
+    /* Increases the font size */
     text-decoration: none;
 
 }
 
 .nav-button:hover {
-    background-color: #000; /* Changes background to black on hover */
-    color: #fff; /* Changes text color to white on hover */
+    background-color: #000;
+    /* Changes background to black on hover */
+    color: #fff;
+    /* Changes text color to white on hover */
 }
 
 .float-window {
-    position: fixed; /* Makes the window float */
-    top: 20%; /* Distance from the top */
-    right: 20%; /* Distance from the right */
-    width: 300px; /* Width of the window */
-    height: auto; /* Height based on content */
-    background-color: white; /* Background color */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Adds a shadow for depth */
-    z-index: 100; /* Ensures it's above most other content */
-    display: none; /* Initially hidden */
-    padding: 20px; /* Padding around the content */
-    border-radius: 10px; /* Optional: Rounds the corners */
+    position: fixed;
+    /* Makes the window float */
+    top: 20%;
+    /* Distance from the top */
+    right: 20%;
+    /* Distance from the right */
+    width: 300px;
+    /* Width of the window */
+    height: auto;
+    /* Height based on content */
+    background-color: white;
+    /* Background color */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    /* Adds a shadow for depth */
+    z-index: 100;
+    /* Ensures it's above most other content */
+    display: none;
+    /* Initially hidden */
+    padding: 20px;
+    /* Padding around the content */
+    border-radius: 10px;
+    /* Optional: Rounds the corners */
 }
 
 /* Ensure the table fits nicely within the floating window: */
 .float-window table {
-    width: 100%; /* Make the table fill the window */
+    width: 100%;
+    /* Make the table fill the window */
     border-collapse: collapse;
 }
+
 .float-window td {
-    border: 1px solid #ddd; /* Add a border to each cell */
+    border: 1px solid #ddd;
+    /* Add a border to each cell */
     text-align: center;
     padding: 8px;
 }
-
-
