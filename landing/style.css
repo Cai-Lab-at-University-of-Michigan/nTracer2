@@ -26,6 +26,22 @@ nav {
     padding: 0 20px;
 }
 
+main {
+    position: relative;
+    /* This will allow you to absolutely position your iframe */
+    width: 100%;
+    /* Ensure full width */
+    height: 100vh;
+    /* Adjust height as needed, or use dynamic sizing */
+    background-image: url('./img/striatal_spiny_neuron.jpg');
+    background-size: cover;
+    /* This will cover the entire area of <main>, cropping if necessary */
+    background-position: center;
+    /* This centers the image in the <main> section */
+    background-repeat: no-repeat;
+    /* Prevents the image from repeating */
+}
+
 .logo {
     height: 80px;
     /* Adjust the size as needed */
