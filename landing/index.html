@@ -1,49 +1,56 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Spectral Connectomics Landing Page</title>
+
     <link rel="stylesheet" href="style.css">
     <style>
         main {
-            position: relative; /* This will allow you to absolutely position your iframe */
-            width: 100%; /* Ensure full width */
-            height: 100vh; /* Adjust height as needed, or use dynamic sizing */
+            position: relative;
+            /* This will allow you to absolutely position your iframe */
+            width: 100%;
+            /* Ensure full width */
+            height: 100vh;
+            /* Adjust height as needed, or use dynamic sizing */
             background-image: url('./img/striatal_spiny_neuron.jpg');
-            background-size: cover; /* This will cover the entire area of <main>, cropping if necessary */
-            background-position: center; /* This centers the image in the <main> section */
-            background-repeat: no-repeat; /* Prevents the image from repeating */
+            background-size: cover;
+            /* This will cover the entire area of <main>, cropping if necessary */
+            background-position: center;
+            /* This centers the image in the <main> section */
+            background-repeat: no-repeat;
+            /* Prevents the image from repeating */
         }
     </style>
 </head>
+
 <body>
     <header>
         <nav>
-            <!-- Logo -->
             <a href="javascript:void(0);" onclick="resetView()">
                 <img src="./img/Spectral_Connectomics_Logo_crop.png" alt="Your Logo" class="logo">
             </a>
 
             <a id="dashboardButton" class="nav-button" target="_blank">Open Dashboard</a>
 
-            <button id="aboutButton" class="nav-button">About</button>
-
+            <!--<button id="aboutButton" class="nav-button">About</button>-->
 
         </nav>
     </header>
-    
-    <main>     
+
+    <main>
         <section class="hero" id="heroSection">
             <h1>Explore the Brain!</h1>
             <p>Discover by Spectral Connectomics.</p>
 
-            <!-- Add an iframe here -->
             <iframe id="datasetFrame" style="width:100%; height:100%; display:none;"></iframe>
         </section>
     </main>
 
     <script src="script.js"></script>
 </body>
-</html>
 
+</html>
