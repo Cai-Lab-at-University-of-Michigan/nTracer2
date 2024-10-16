@@ -12,16 +12,18 @@ Pending...
 
 ### Hotkey Shortcuts
 
-|   Key Combination     |   Command                           |
-|-----------------------|-------------------------------------|
-|   Ctrl + right-click  |   Deselect current selections.      |
-|   Ctrl + left-click   |   Place selection box.              |
-|   2 x left-click      |   Select nearest point to mouse     |
-|   A                   |   Trace a neurite                   |
-|   S                   |   Trace a soma                      |
-|   Ctrl + z            |   Undo                              |
-|   Ctrl + y            |   Redo                              |
-| Alt + Scroll          | Change depth for which traces are shown. | 
+| Key Combination          | Command                                    |
+|--------------------------|--------------------------------------------|
+| Ctrl/Alt + right-click   | Deselect current selections.               |
+| Ctrl + left-click        | Place selection box.                       |
+| Alt + left-click         | Place selection box (with no auto shift)   |
+| 2 x left-click           | Select nearest point to mouse              |
+| A                        | Trace a neurite                            |
+| S                        | Trace a soma                               |
+| O                        | Complete a soma tracing                    |
+| Ctrl + z                 | Undo                                       |
+| Ctrl + y                 | Redo                                       |
+| Alt + Scroll             | Change depth for which traces are shown.   | 
 
 ### Docker Parameters
 
@@ -110,13 +112,13 @@ Once the image file is loaded, you can begin tracing. You may start by tracing a
 
 The soma tracing method can be used to identify the 3D structure of a cell body 
 
-1. First, `Ctrl-left click` anywhere on the soma outline. A red box will appear marking this point as the starting point.
-2. Next, `Ctrl-left click` again to mark the end point of the trace. A blue box will appear marking this point as the ending point.
+1. First, `Alt-left click` anywhere on the soma outline. A red box will appear marking this point as the starting point.
+2. Next, `Alt-left click` again to mark the end point of the trace. A blue box will appear marking this point as the ending point.
 3. Press `s` or click "Soma" on tracing menu toolbox to execute the soma tracing method. This will perform an A* search between the start and end points.
 4. The path will appear as a red line, and the end point automatically becomes the new starting point (red box).
 5. Continue tracing by clicking along the somatic boundary in the same manner.
 6. Before starting to trace the soma at a new z position, `Ctrl+right click` to deselect the last tracing you just made while keeping the root neuron selected. The red box from the previous slice will disappear and allow you to assign a new starting point on the new z position.
-7. To finish, press “Complete” in the Soma(s) box in the editing dashboard. The program automatically connects the most recent endpoint to the first starting point.
+7. To finish, press “Complete” in the Soma(s) box in the editing dashboard or the 'o' key. The program automatically connects the most recent endpoint to the first starting point.
 
 **Note:** You can undo tracing by pressing `Ctrl-z`, and redo tracing by pressing `Ctrl-y`. Upon creating a trace, you will see your first soma trace listed in the control panel.
 
