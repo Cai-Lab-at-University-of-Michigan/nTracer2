@@ -60,4 +60,5 @@ EXPOSE $server_port
 
 RUN chmod +x ./main.py
 
+ENV PYTHONUNBUFFERED=1
 ENTRYPOINT ["./main.py"]
