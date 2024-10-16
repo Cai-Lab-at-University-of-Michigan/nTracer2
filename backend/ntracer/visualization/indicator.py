@@ -18,14 +18,18 @@ from ntracer.tracing.mean_shift import mean_shift
 class IndicatorFunctions:
     @staticmethod
     @inject_state
-    def draw_cyan_box(state: NtracerState, action_state: ActionState):
+    def select_end_point(state: NtracerState, action_state: ActionState, no_mean_shift: bool):
         state.endingPointS = action_state
 
-        new_point = mean_shift(
-            action_state.mouse_voxel_coordinates,
+        if no_mean_shift is False:
+            new_point = mean_shift(
+                action_state.mouse_voxel_coordinates,
             state.cdn_url.geturl(),
             state.dataset_id,
-        )
+            )
+        else:
+            new_point = action_state.mouse_voxel_coordinates
+        
         state.endingPoint = new_point
         print("Second mouse position:", state.endingPoint)
 
@@ -110,15 +114,7 @@ class IndicatorFunctions:
     """,
             )
 
-        cs: ConfigState
-        with state.viewer.config_state.txn() as cs:
-            if "first_point" in cs.status_messages:
-                del cs.status_messages["first_point"]
-            if "second_point" in cs.status_messages:
-                del cs.status_messages["second_point"]
-            if "connect" in cs.status_messages:
-                del cs.status_messages["connect"]
-
+        IndicatorFunctions.clear_status_messages()
         state.dashboard_state.selected_indexes = []
         state.dashboard_state.selected_soma_z_slice = -1
         state.dashboard_state.selected_point = None
@@ -218,3 +214,23 @@ class IndicatorFunctions:
                     }
                 """,
             )
+
+    @staticmethod
+    @inject_state
+    def clear_status_messages(state: NtracerState):
+        cs: ConfigState
+        with state.viewer.config_state.txn() as cs:
+            if "start_point" in cs.status_messages:
+                del cs.status_messages["start_point"]
+            if "end_point" in cs.status_messages:
+                del cs.status_messages["end_point"]
+            if "connect" in cs.status_messages:
+                del cs.status_messages["connect"]
+
+    @staticmethod
+    @inject_state
+    def add_status_message(state: NtracerState, message: str, key: str, clear_previous: bool = False):
+        cs: ConfigState
+        with state.viewer.config_state.txn() as cs:
+            cs.status_messages[key] = message
+ 

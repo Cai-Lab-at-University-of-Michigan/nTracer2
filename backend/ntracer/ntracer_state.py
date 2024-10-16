@@ -17,7 +17,7 @@ from ntracer.utils.timing import print_time
 @dataclass(init=True)
 class NtracerState:
     coords: Coords
-    viewer: Viewer
+    viewer: Viewer | None = None
 
     dataset_id: str = os.environ["DATASET_ID"]
 
@@ -54,10 +54,9 @@ class NtracerState:
     """True if image has more than 3 channels"""
 
     dashboard_state: DashboardState = DashboardState()
-    selected_tracing_points: str | None = None
+    selected_tracing_points: list | None = None
     startingPoint: tuple[int, int, int] | None = None
     endingPoint: tuple[int, int, int] | None = None
-    endingPointS: ActionState | None = None
     currentAction: str | None = None
 
     @print_time("NTRACER_STATE")

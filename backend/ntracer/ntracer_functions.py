@@ -32,47 +32,58 @@ from ntracer.utils.timing import print_time
 class NtracerFunctions:
     @inject_state
     @staticmethod
-    def first_point(
+    def select_point(
         state: NtracerState,
-        action_state: ActionState,
+        coordinates: any,
         no_mean_shift: bool = False,
-        extend: bool = False,
+        is_end_point: bool = False
     ):  # selects first point for a given trace
         if Constants.IS_DEBUG_MODE:
-            print("Running first_point with no_mean_shift", no_mean_shift)
+            print("Running select_point with no_mean_shift", no_mean_shift)
 
-        new_point = tuple(map(int, action_state.mouse_voxel_coordinates))
-        if not no_mean_shift:
+        point = tuple(map(int, coordinates))
+        if no_mean_shift is False:
+            print("Running mean shift")
             x = mean_shift(
-                action_state.mouse_voxel_coordinates,
+                point,
                 state.cdn_url.geturl(),
                 state.dataset_id,
             )
             print(x)
             new_point = x
+        else:
+            new_point = point
 
-        if extend and state.endingPoint is not None:
-            new_point = state.endingPoint
-
-        state.startingPoint = (
-            (new_point[0], new_point[1], new_point[2]) if new_point else None
-        )
-
-        print("First mouse position:", new_point)
+        if is_end_point is False:
+            state.startingPoint = (
+                (new_point[0], new_point[1], new_point[2]) if new_point else None
+            )
+            print("Starting point:", state.startingPoint)
+        else: # end point
+            state.endingPoint = (
+                (new_point[0], new_point[1], new_point[2]) if new_point else None
+            )
+            print("Ending point:", state.endingPoint)
 
         config_state: ConfigState
         with state.viewer.config_state.txn() as config_state:
-            msg = "First point: " + str(new_point)
-            config_state.status_messages["first_point"] = msg
-            # socketio.emit("status_message", msg)
+            if is_end_point is False:
+                config_state.status_messages['start_point'] = "Start point: " + str(new_point)
+            else:
+                config_state.status_messages['end_point'] = "End point: " + str(new_point)
+            if "connect" in config_state.status_messages:
+                del config_state.status_messages["connect"]
+
 
         s: ViewerState
         with state.viewer.txn() as s:
-            lines = IndicatorFunctions.box_indicator(new_point, "first")
-
+            lines = IndicatorFunctions.box_indicator(state.startingPoint, "first")
+            if is_end_point is True:
+                lines.extend(IndicatorFunctions.box_indicator(state.endingPoint, "second"))
+            color = "#ff2400" if is_end_point is False else "#0000ff"
             s.layers["Selection Boxes"] = neuroglancer.viewer_state.AnnotationLayer(
                 annotations=lines,
-                annotation_color="#ff2400 ",
+                annotation_color=color,
                 shader="""
             void setEndpointMarkerBorderColor(vec4 rgba);
             void setLineWidth(float widthInScreenPixels);
@@ -140,27 +151,12 @@ class NtracerFunctions:
 
     @staticmethod
     @inject_state
-    def ctrl_left_click(state: NtracerState, action_state: ActionState):
+    def ctrl_left_click(state: NtracerState, action_state: ActionState, no_mean_shift=False):
         if state.startingPoint is None:
-            NtracerFunctions.first_point(action_state)
+            NtracerFunctions.select_point(action_state.mouse_voxel_coordinates, no_mean_shift, is_end_point=False)
         else:
-            IndicatorFunctions.draw_cyan_box(action_state)
+            NtracerFunctions.select_point(action_state.mouse_voxel_coordinates, no_mean_shift, is_end_point=True)
 
-            cs: ConfigState
-            with state.viewer.config_state.txn() as cs:
-                cs.status_messages[
-                    "second_point"
-                ] = f"Second point: {state.endingPoint}"
-                if "connect" in cs.status_messages:
-                    del cs.status_messages["connect"]
-
-    @staticmethod
-    @inject_state
-    def no_shift(state: NtracerState, s: ActionState):
-        if state.startingPoint is None:
-            NtracerFunctions.first_point(s, no_mean_shift=True)
-        else:
-            IndicatorFunctions.draw_cyan_box(s)
 
     @staticmethod
     @print_time("DB")
@@ -229,20 +225,18 @@ class NtracerFunctions:
     @inject_state
     def get_soma_list(state: NtracerState) -> list:
         dashboard_state = state.dashboard_state
-        if dashboard_state.is_neuron_selected:
+        if dashboard_state.is_neuron_selected or dashboard_state.is_branch_selected:
             neuron_id = dashboard_state.selected_neuron_id
-            if len(dashboard_state.selected_indexes[0]) == 1:  # Return soma list
-                return [
-                    {"neuron": neuron_id + 1, "z_slice": z_slice}
-                    for z_slice, _ in state.coords.roots[neuron_id].soma_layers.items()
-                ]
+            return [
+                {"neuron": neuron_id + 1, "z_slice": z_slice}
+                for z_slice, _ in state.coords.roots[neuron_id].soma_layers.items()
+            ]
         return []
     
     @staticmethod
     @inject_state
     def set_selected_points(state: NtracerState):
-        points = NtracerFunctions.get_selected_points()
-        state.selected_tracing_points = json.dumps(points)
+        state.selected_tracing_points = NtracerFunctions.get_selected_points()
 
     @staticmethod
     def set_display_channels():

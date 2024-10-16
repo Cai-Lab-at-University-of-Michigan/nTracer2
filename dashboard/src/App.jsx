@@ -21,50 +21,24 @@ function App() {
   const [dashboardState, dashboardDispatch] = useReducer(DashboardReducer, initialDashboardState)
 
   useEffect(() => {
-    const evtSource = new EventSource(`${BASE_URL}/dashboard_state/stream`);
-    evtSource.addEventListener("dashboard_state", ({ data }) => {
-      const json = JSON.parse(data);
+    const evtSource = new EventSource(`${BASE_URL}/stream/dashboard`);
+    evtSource.addEventListener("state", ({ data }) => {
+      const {dashboard_state, tracing_state, points_state, soma_state} = JSON.parse(data);
       updating.current = true;
+      
       dashboardDispatch({
         type: 'updateAllProperties',
         payload: {
-          newState: json
+          newState: dashboard_state
         }
       })
+
+      setData(tracing_state)
+      setPointList(points_state)
+      setSomaList(soma_state)
     })
   },[])
 
-  useEffect(() => {
-    const evtSource = new EventSource(`${BASE_URL}/tracing_data_stream`);
-    evtSource.addEventListener("tracing_data", ({ data }) => {
-      const json = JSON.parse(data);
-      setData(json)
-    })
-  }, [])
-
-  useEffect(() => {
-    const evtSource = new EventSource(`${BASE_URL}/points/stream`);
-    evtSource.addEventListener("points_data", ({ data }) => {
-      const json = JSON.parse(data);
-      setPointList(json)
-    })
-
-    evtSource.addEventListener("soma_data", ({ data }) => {
-      const json = JSON.parse(data);
-      setSomaList(json)
-    })
-    
-  }, [])
-
-  useEffect(() => {
-    const evtSource = new EventSource(`${BASE_URL}/soma/list/stream`);
-
-    evtSource.addEventListener("soma_list", ({ data }) => {
-      const json = JSON.parse(data);
-      setSomaList(json)
-    })
-    
-  }, [])
   // useEffect(() => {
   //   if (updating.current) {
   //     updating.current = false;

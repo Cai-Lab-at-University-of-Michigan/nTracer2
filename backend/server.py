@@ -63,72 +63,72 @@ async def index() -> RedirectResponse:
     coords = state.coords
     dashboard_state = state.dashboard_state
 
-    if not hasattr(neuroglancer.AnnotationLayer, "annotation_color"):  # type: ignore
-        from neuroglancer.viewer_state import optional, text_type, wrapped_property
+    if state.viewer is None:
+        if not hasattr(neuroglancer.AnnotationLayer, "annotation_color"):  # type: ignore
+            from neuroglancer.viewer_state import optional, text_type, wrapped_property
 
-        neuroglancer.AnnotationLayer.annotation_color = wrapped_property(  # type: ignore
-            "annotationColor", optional(text_type)
+            neuroglancer.AnnotationLayer.annotation_color = wrapped_property(  # type: ignore
+                "annotationColor", optional(text_type)
+            )
+
+        neuroglancer.set_server_bind_address(
+            bind_address="0.0.0.0",  # Allow access from outside Docker container
+            bind_port=state.neuroglancer_port,
         )
 
-    neuroglancer.set_server_bind_address(
-        bind_address="0.0.0.0",  # Allow access from outside Docker container
-        bind_port=state.neuroglancer_port,
-    )
+        # runs image layer functions
+        viewer = neuroglancer.Viewer(token=TOKEN)
+        user_id+=1
+        state.viewer = viewer
+        ImageFunctions.image_init()
+        await NtracerFunctions.download_from_database(state.coords)
+        ImageFunctions.image_write()
+        dashboard_state.channels = coords.shape[1]
+        dashboard_state.selected_display_channels = list(
+            range(dashboard_state.channels)
+        )
+        dashboard_state.selected_analysis_channels = list(
+            range(dashboard_state.channels)
+        )
 
-    # runs image layer functions
-    viewer = neuroglancer.Viewer(token=TOKEN)
-    user_id+=1
-    state.viewer = viewer
-    ImageFunctions.image_init()
-    await NtracerFunctions.download_from_database(state.coords)
-    ImageFunctions.image_write()
-    dashboard_state.channels = coords.shape[1]
-    dashboard_state.selected_display_channels = list(
-        range(dashboard_state.channels)
-    )
-    dashboard_state.selected_analysis_channels = list(
-        range(dashboard_state.channels)
-    )
+        # Add these to html, hover for tip on how to use
+        # defines all of the hot key commands
+        viewer.actions.add("undo", lambda s: Versioning.undo())
+        viewer.actions.add("redo", lambda s: Versioning.redo())
+        viewer.actions.add("add point", lambda s: NtracerFunctions.ctrl_left_click(s))
+        viewer.actions.add("add point no shift", lambda s: NtracerFunctions.ctrl_left_click(s, no_mean_shift=True))
+        viewer.actions.add(
+            "connect points", lambda s: TracingFunctions.connect_selected_points()
+        )
+        viewer.actions.add(
+            "connect soma", lambda s: TracingFunctions.connect_selected_points(is_soma=True)
+        )
+        viewer.actions.add(
+            "clear selections", lambda s: clear_points()
+        )
+        viewer.actions.add(
+            "select branch", lambda s: NtracerFunctions.auto_select_branch(s)
+        )
+        viewer.actions.add(
+            "select branch endpoint", lambda s: NtracerFunctions.auto_select_branch(s, get_endpoint=True)
+        )
+        viewer.actions.add(
+            "complete soma", lambda s: complete_soma()
+        )
 
-    # Add these to html, hover for tip on how to use
-    # defines all of the hot key commands
-    viewer.actions.add("undo", lambda s: Versioning.undo())
-    viewer.actions.add("redo", lambda s: Versioning.redo())
-    viewer.actions.add(
-        "temporary indicator", lambda s: IndicatorFunctions.right_click_indicator(s)
-    )
-    viewer.actions.add("add point", lambda s: NtracerFunctions.ctrl_left_click(s))
-    viewer.actions.add("add point no shift", lambda s: NtracerFunctions.no_shift(s))
-    viewer.actions.add(
-        "connect points", lambda s: TracingFunctions.connect_points()
-    )
-    viewer.actions.add(
-        "connect soma", lambda s: TracingFunctions.connect_soma_points()
-    )
-    viewer.actions.add(
-        "clear selections", lambda s: clear_points()
-    )
-    viewer.actions.add(
-        "select branch", lambda s: NtracerFunctions.auto_select_branch(s)
-    )
-    viewer.actions.add(
-        "select branch endpoint", lambda s: NtracerFunctions.auto_select_branch(s, get_endpoint=True)
-    )
-
-    s: ConfigState
-    with viewer.config_state.txn() as s:
-        s.input_event_bindings.viewer["control+keyz"] = "undo"
-        s.input_event_bindings.viewer["control+keyy"] = "redo"
-        s.input_event_bindings.data_view["shift+mousedown2"] = "temporary indicator"
-        s.input_event_bindings.data_view["control+mousedown0"] = "add point"
-        s.input_event_bindings.data_view["shift+mousedown0"] = "add point no shift"
-        s.input_event_bindings.data_view["keya"] = "connect points"
-        s.input_event_bindings.data_view["keys"] = "connect soma"
-        s.input_event_bindings.data_view["control+mousedown2"] = "clear selections"
-        s.input_event_bindings.data_view["dblclick0"] = "select branch"
-        s.input_event_bindings.data_view["alt+dblclick0"] = "select branch endpoint"
-
-    # webbrowser.open("{}dashboard/".format(request.host_url), new=2)
+        s: ConfigState
+        with viewer.config_state.txn() as s:
+            s.input_event_bindings.viewer["control+keyz"] = "undo"
+            s.input_event_bindings.viewer["control+keyy"] = "redo"
+            s.input_event_bindings.data_view["control+mousedown0"] = "add point"
+            s.input_event_bindings.data_view["alt+mousedown0"] = "add point no shift"
+            s.input_event_bindings.data_view["keya"] = "connect points"
+            s.input_event_bindings.data_view["keys"] = "connect soma"
+            s.input_event_bindings.data_view["mousedown2"] = "clear selections"
+            s.input_event_bindings.data_view["control+mousedown2"] = "clear selections"
+            s.input_event_bindings.data_view["alt+mousedown2"] = "clear selections"
+            s.input_event_bindings.data_view["alt+dblclick0"] = "select branch endpoint"
+            s.input_event_bindings.data_view["keyo"] = "complete soma"
 
     viewer_url = quote_plus(
         urlparse(posixpath.join(os.environ["PUBLIC_URL"], f"v/{TOKEN}/"))
@@ -140,31 +140,66 @@ async def index() -> RedirectResponse:
         f"/viewer?viewer={viewer_url}&dashboard={dashboard_url}"
     )
 
-@app.get("/dashboard_state/stream")
-async def dashboard_state_stream(request: Request):
+def get_dashboard_state():
+    return get_state().dashboard_state.get_state_dict()
+
+def get_tracing_state():
+    simple_object = {"children": []}
+    state = get_state()
+    for neuron_number, neuron in state.coords.roots.items():
+        simple_object["children"].append(
+            NeuronHelper.get_simple_neuron_object(neuron, neuron_number)
+        )
+
+    return simple_object
+
+def get_points_state():
+    res = get_state().selected_tracing_points
+    if res is None:
+        return []
+    return res
+
+def get_soma_state():
+    return NtracerFunctions.get_soma_list()
+
+
+@app.get("/stream/dashboard")
+async def dashboard_stream(request: Request):
     async def event_generator():
         prev_state: str | None = None
 
+        id = 0
         while True:
             # If client closes connection, stop sending events
             if await request.is_disconnected():
                 break
 
             # Checks for new messages and return them to client if any
-            state = get_state().dashboard_state
-            res = json.dumps(state.get_state_dict())
+            dashboard_state = get_dashboard_state()
+            tracing_state = get_tracing_state()
+            points_state = get_points_state()
+            soma_state = get_soma_state()
+
+            res = json.dumps({
+                "dashboard_state": dashboard_state,
+                "tracing_state": tracing_state,
+                "points_state": points_state,
+                "soma_state": soma_state
+            })
+
             if prev_state is None or res != prev_state:
                 prev_state = res
                 yield  {
-                    "event": "dashboard_state",
-                    "id": "message_id",
+                    "event": "state",
                     "retry": 15000,
-                    "data": res
+                    "data": res,
+                    "id": id
                 }
 
+            id += 1
             await asyncio.sleep(0.5)
 
-    return EventSourceResponse(event_generator())
+    return EventSourceResponse(event_generator(), send_timeout=5)
 
 @app.post("/dashboard_state/update")
 async def dashboard_state_update(request: Request):
@@ -217,91 +252,6 @@ async def dashboard_state_update(request: Request):
         state.coords.roots[dashboard_state.expanded_neuron] = neuron
         state.coords.downloaded_neurons.append(dashboard_state.expanded_neuron)
         # NtracerFunctions.set_selected_points()
-
-
-@app.get("/tracing_data_stream")
-async def tracing_data_stream(request: Request):
-    async def event_generator():
-        prev_state: str | None = None
-
-        while True:
-            # If client closes connection, stop sending events
-            if await request.is_disconnected():
-                break
-
-            simple_object = {"children": []}
-            state = get_state()
-            for neuron_number, neuron in state.coords.roots.items():
-                simple_object["children"].append(
-                    NeuronHelper.get_simple_neuron_object(neuron, neuron_number)
-                )
-
-            ret = json.dumps(simple_object)
-
-            if prev_state is None or ret != prev_state:
-                prev_state = ret
-                yield  {
-                    "event": "tracing_data",
-                    "id": "message_id",
-                    "retry": 15000,
-                    "data": ret
-                }
-
-            await asyncio.sleep(0.5)
-
-    return EventSourceResponse(event_generator())
-
-@app.get("/points/stream")
-async def points_data_stream(request: Request):
-    async def event_generator():
-        prev_state: str | None = None
-
-        while True:
-            # If client closes connection, stop sending events
-            if await request.is_disconnected():
-                break
-
-            state = get_state()
-            ret = state.selected_tracing_points
-
-            if prev_state is None or ret != prev_state:
-                prev_state = ret
-                yield  {
-                    "event": "points_data",
-                    "id": "message_id",
-                    "retry": 15000,
-                    "data": ret
-                }
-
-            await asyncio.sleep(0.5)
-
-    return EventSourceResponse(event_generator())
-
-@app.get("/soma/list/stream")
-async def soma_list_stream(request: Request):
-    async def event_generator():
-        prev_state: str | None = None
-
-        while True:
-            # If client closes connection, stop sending events
-            if await request.is_disconnected():
-                break
-
-            soma_list = NtracerFunctions.get_soma_list()
-            ret = json.dumps(soma_list)
-
-            if prev_state is None or ret != prev_state:
-                prev_state = ret
-                yield  {
-                    "event": "soma_list",
-                    "id": "message_id",
-                    "retry": 15000,
-                    "data": ret
-                }
-
-            await asyncio.sleep(0.5)
-
-    return EventSourceResponse(event_generator())
 
 
 @app.get("/neuron/delete")
@@ -456,12 +406,12 @@ async def export_swc(selected: bool):
 
 @app.get("/trace/neurite")
 def trace_neurite():
-    TracingFunctions.connect_points()
+    TracingFunctions.connect_selected_points()
 
 
 @app.get("/trace/soma")
 def trace_soma():
-    TracingFunctions.connect_soma_points()
+    TracingFunctions.connect_selected_points(is_soma=True)
 
 
 @app.post("/swc/import")
