@@ -26,6 +26,7 @@ from ntracer.state_injector import inject_state, inject_state_and_socketio
 from ntracer.tracing.mean_shift import mean_shift
 from ntracer.visualization.image import ImageFunctions
 from ntracer.visualization.indicator import IndicatorFunctions
+from ntracer.visualization.freehand import FreehandFunctions
 from ntracer.utils.timing import print_time
 
 
@@ -157,6 +158,24 @@ class NtracerFunctions:
         else:
             NtracerFunctions.select_point(action_state.mouse_voxel_coordinates, no_mean_shift, is_end_point=True)
 
+    @staticmethod
+    @inject_state
+    def ctrl_keyf_left_click(state: NtracerState, action_state: ActionState):
+        if action_state.mouse_voxel_coordinates is not None: 
+            if state.startingPoint is not None:
+                state.freehand_state.traversed_points_pixel.append(state.startingPoint)
+                state.startingPoint = None
+            if state.endingPoint is not None:
+                state.endingPoint = None
+
+            if state.dashboard_state.is_point_selected and not state.freehand_state.is_dashboard_point_selected:
+                state.freehand_state.traversed_points_pixel.append(state.dashboard_state.selected_point)
+                state.freehand_state.is_dashboard_point_selected = True
+
+            new_point = tuple(map(int, action_state.mouse_voxel_coordinates))
+            FreehandFunctions.select_point(new_point)
+            lines = IndicatorFunctions.box_indicator(new_point, "first")
+            FreehandFunctions.update_box_indicator(lines)
 
     @staticmethod
     @print_time("DB")

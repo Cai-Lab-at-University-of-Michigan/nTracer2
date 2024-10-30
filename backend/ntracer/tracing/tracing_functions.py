@@ -19,9 +19,18 @@ from ntracer.tracing.update_functions import UpdateFunctions
 from ntracer.visualization.image import ImageFunctions
 from ntracer.utils.timing import print_time
 from ntracer.visualization.indicator import IndicatorFunctions
+from ntracer.visualization.freehand import FreehandFunctions
 
 
 class TracingFunctions:
+    @staticmethod
+    @inject_state
+    def connect_or_commit_points(state: NtracerState, is_soma: bool = False):
+        if state.endingPoint is not None: # use this to determine
+            return TracingFunctions.connect_selected_points(is_soma=is_soma)
+        else:
+            return TracingFunctions.commit_selected_points(is_soma=is_soma)
+
     @staticmethod
     @inject_state
     def connect_selected_points(state: NtracerState, is_soma: bool = False):
@@ -199,3 +208,31 @@ class TracingFunctions:
             new_neuron_id = NtracerFunctions.add_new_neuron(neuron)
             state.dashboard_state.selected_indexes = [[new_neuron_id]]
             state.dashboard_state.selected_soma_z_slice = new_path[0][2]  # type: ignore
+
+    @staticmethod
+    @print_time("DB")
+    @inject_state
+    def commit_selected_points(state: NtracerState, is_soma=False):
+        if FreehandFunctions.is_empty():
+            return
+        
+        if is_soma:
+            TracingFunctions._add_traced_soma(state.freehand_state.traversed_points_physical)
+        else:
+            TracingFunctions._add_traced_neurites(state.freehand_state.traversed_points_physical)
+
+        # deselect
+        if state.freehand_state.is_dashboard_point_selected:
+            state.dashboard_state.selected_indexes = [[state.dashboard_state.selected_neuron_id]]
+            state.dashboard_state.selected_soma_z_slice = -1
+            state.dashboard_state.selected_point = None
+
+        config_state: ConfigState
+        with state.viewer.config_state.txn() as config_state:
+            config_state.status_messages["commit"] = "drawing committed"
+
+        FreehandFunctions.clear_freehand_state()
+        FreehandFunctions.update_canvas()
+        FreehandFunctions.clear_status_messages()
+        IndicatorFunctions.clear_status_messages()
+        ImageFunctions.image_write()
