@@ -92,7 +92,8 @@ class NtracerState:
             "info",
         )
         try:
-            return requests.get(url).json()["num_channels"] > 3
+            # 211124 Changing to call any multichannel image "multi"
+            return requests.get(url).json()["num_channels"] > 1
         except Exception as e:
             print(
                 "Error, checking if image is multi-channel, verify Neuroglancer info file for image exists at:",
