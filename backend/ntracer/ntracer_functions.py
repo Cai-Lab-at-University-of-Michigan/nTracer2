@@ -318,7 +318,23 @@ class NtracerFunctions:
     @staticmethod
     @inject_state
     def set_projection_range(state: NtracerState):
-        pass
+        # BY DB
+        dashboard_state = state.dashboard_state
+        num_zslices = dashboard_state.projection_range
+
+        with viewer.txn() as s:
+            s.layers["z-projection"] = neuroglancer.ImageLayer(
+                source=f'precomputed://{state.cdn_url_host_dataset.geturl()}/{num_zslices}',
+                shader=Constants.DEFAULT_SHADER,
+                
+                dimensions = neuroglancer.CoordinateSpace(
+                    names=["x", "y", "z"],
+                    units=["nm", "nm", "nm"],
+                    scales=state.coords.scale,
+                )
+            )
+
+        # pass
         # coords = var.coords
         # dashboard_state = var.dashboard_state
         # viewer = var.viewer

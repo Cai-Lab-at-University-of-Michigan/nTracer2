@@ -150,7 +150,7 @@ export default function TracingMenu() {
           </TraceContainer>
 
           {/* <Subtitle>Substack Z Projection</Subtitle> */}
-          {/* <BorderContainer>
+          <BorderContainer>
               <br />
               <span>Z +/-</span>
               <br />
@@ -160,7 +160,7 @@ export default function TracingMenu() {
               <br />
               <span id="slider_value">{zRangeDisplay}</span>
               <br />
-          </BorderContainer> */}
+          </BorderContainer>
 
           {/* <FlexContainer>
               <div class="fixed">

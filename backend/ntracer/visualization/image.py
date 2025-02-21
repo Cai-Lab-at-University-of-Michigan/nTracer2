@@ -70,8 +70,21 @@ class ImageFunctions:
             #     shader=Constants.PROJECTION_SHADER
             # )
 
+            # BY DB
+            num_zslices = dashboard_state.projection_range
+            s.layers["z-projection"] = neuroglancer.ImageLayer(
+                source=f'precomputed://{state.cdn_url_host_dataset.geturl()}/{num_zslices}',
+                shader=Constants.PROJECTION_SHADER,
+                dimensions = neuroglancer.CoordinateSpace(
+                    names=["x", "y", "z"],
+                    units=["nm", "nm", "nm"],
+                    scales=state.coords.scale,
+                )
+            )
+
             s.layout = neuroglancer.viewer_state.row_layout(
                 [
+                    neuroglancer.LayerGroupViewer(layers=["z-projection"]),
                     neuroglancer.viewer_state.LayerGroupViewer(
                         layers=["image", "annotate_pre"]  # , "soma"]
                     ),
@@ -84,7 +97,7 @@ class ImageFunctions:
             z_slices = coords.layer_data[0].shape[0] // 10
 
             dashboard_state.min_projection_slice = min(1, z_slices)
-            dashboard_state.max_projection_slice = z_slices // 4
+            dashboard_state.max_projection_slice = min(z_slices // 4, 32)
 
     @staticmethod
     @inject_state
