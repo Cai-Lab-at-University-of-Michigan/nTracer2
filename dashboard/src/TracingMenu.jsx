@@ -95,10 +95,14 @@ export default function TracingMenu() {
   //   )
   // })
 
-  const onZLayerChange = (event) => {
-    const newZ = parseInt(event.target.value)
-    setZRangeDisplay(newZ)
-  }
+  // const onZLayerChange = (event) => {
+  //   const newZ = parseInt(event.target.value)
+  //   setZRangeDisplay(newZ)
+  // }
+
+  useEffect(() => {
+      setZLayerProjection();
+  }, [zRangeDisplay]);
 
   const setZLayerProjection = () => {
     dashboardDispatch({
@@ -141,6 +145,14 @@ export default function TracingMenu() {
             </SliderContainer>
           </SettingContainer>
 
+          <SettingContainer>
+              <Subtitle>Adjust number of projected Z slices</Subtitle>
+              <SliderContainer>
+              <Slider type="range" id="slider" min={dashboardState.min_projection_slice}  max={dashboardState.max_projection_slice} step="1" value={zRangeDisplay} onChange={(e) => {setZRangeDisplay(parseInt(e.target.value))}}/>
+              <SliderValue>{zRangeDisplay}</SliderValue>
+              </SliderContainer>
+          </SettingContainer>
+
           <TraceContainer>
             <TraceHeading>Trace</TraceHeading>
             <TraceButtonContainer>
@@ -148,19 +160,6 @@ export default function TracingMenu() {
               <TraceButton onClick={onTraceSoma}>Soma</TraceButton>
             </TraceButtonContainer>
           </TraceContainer>
-
-          {/* <Subtitle>Substack Z Projection</Subtitle> */}
-          <BorderContainer>
-              <br />
-              <span>Z +/-</span>
-              <br />
-              <span>Number of layers ({dashboardState.min_projection_slice}-{dashboardState.max_projection_slice})</span>
-              <br />
-              <input type="range" id="slider" min={dashboardState.min_projection_slice}  max={dashboardState.max_projection_slice} step="1" onChange={onZLayerChange} onMouseUp={setZLayerProjection} onTouchEnd={setZLayerProjection} value={zRangeDisplay}/>
-              <br />
-              <span id="slider_value">{zRangeDisplay}</span>
-              <br />
-          </BorderContainer>
 
           {/* <FlexContainer>
               <div class="fixed">

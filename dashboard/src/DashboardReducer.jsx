@@ -16,7 +16,7 @@ export const initialDashboardState = {
     selected_analysis_channels: [],
     projection_range: 10,
     min_projection_slice: 1,
-    max_projection_slice: 136,
+    max_projection_slice: 100,
     scale: [1, 1, 1],
     tracing_sensitivity: 5,
     mean_shift_XY: 5,

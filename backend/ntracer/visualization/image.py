@@ -73,13 +73,8 @@ class ImageFunctions:
             # BY DB
             num_zslices = dashboard_state.projection_range
             s.layers["z-projection"] = neuroglancer.ImageLayer(
-                source=f'precomputed://{state.cdn_url_host_dataset.geturl()}/{num_zslices}',
-                shader=Constants.PROJECTION_SHADER,
-                dimensions = neuroglancer.CoordinateSpace(
-                    names=["x", "y", "z"],
-                    units=["nm", "nm", "nm"],
-                    scales=state.coords.scale,
-                )
+                source=f'precomputed://{state.cdn_url_host_dataset.geturl()}/zmaxprojection/{num_zslices}',
+                shader=Constants.DEFAULT_SHADER,
             )
 
             s.layout = neuroglancer.viewer_state.row_layout(

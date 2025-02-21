@@ -322,16 +322,10 @@ class NtracerFunctions:
         dashboard_state = state.dashboard_state
         num_zslices = dashboard_state.projection_range
 
-        with viewer.txn() as s:
+        with state.viewer.txn() as s:
             s.layers["z-projection"] = neuroglancer.ImageLayer(
-                source=f'precomputed://{state.cdn_url_host_dataset.geturl()}/{num_zslices}',
+                source=f'precomputed://{state.cdn_url_host_dataset.geturl()}/zmaxprojection/{num_zslices}',
                 shader=Constants.DEFAULT_SHADER,
-                
-                dimensions = neuroglancer.CoordinateSpace(
-                    names=["x", "y", "z"],
-                    units=["nm", "nm", "nm"],
-                    scales=state.coords.scale,
-                )
             )
 
         # pass
