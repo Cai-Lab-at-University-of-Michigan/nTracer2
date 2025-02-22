@@ -28,8 +28,8 @@ RUN mkdir /app
 
 ARG server_port
 ARG neuroglancer_port=8050
-ARG cdn_url=https://sonic2.cai-lab.org/data/
-ARG dataset_id=packed2
+ARG cdn_url=https://sonic.cai-lab.org/data/
+ARG dataset_id=102324_fly_3_merge
 ARG public_url=http://localhost
 
 ENV CDN_URL=$cdn_url

@@ -148,7 +148,7 @@ export default function TracingMenu() {
           <SettingContainer>
               <Subtitle>Adjust number of projected Z slices</Subtitle>
               <SliderContainer>
-              <Slider type="range" id="slider" min={dashboardState.min_projection_slice}  max={dashboardState.max_projection_slice} step="1" value={zRangeDisplay} onChange={(e) => {setZRangeDisplay(parseInt(e.target.value))}}/>
+              <Slider type="range" id="slider" min={dashboardState.min_projection_slice}  max={meanShiftZ * 2} step="1" value={zRangeDisplay} onChange={(e) => {setZRangeDisplay(parseInt(e.target.value))}}/>
               <SliderValue>{zRangeDisplay}</SliderValue>
               </SliderContainer>
           </SettingContainer>

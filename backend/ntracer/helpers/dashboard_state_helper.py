@@ -13,8 +13,8 @@ class DashboardState:
     selected_analysis_channels: list[int] = field(default_factory=list)
     selected_display_channels: list[int] = field(default_factory=list)
     projection_range: int = 10
-    min_projection_slice: int = 0
-    max_projection_slice: int = 100
+    min_projection_slice: int = 1
+    max_projection_slice: int = 40
     scale: tuple[int, int, int] = (1, 1, 1)
     tracing_sensitivity: int = 5
     mean_shift_XY: int = 10

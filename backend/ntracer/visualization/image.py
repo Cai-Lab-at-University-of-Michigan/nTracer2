@@ -79,9 +79,9 @@ class ImageFunctions:
 
             s.layout = neuroglancer.viewer_state.row_layout(
                 [
-                    neuroglancer.LayerGroupViewer(layers=["z-projection"]),
+                    neuroglancer.LayerGroupViewer(layers=["image"]),
                     neuroglancer.viewer_state.LayerGroupViewer(
-                        layers=["image", "annotate_pre"]  # , "soma"]
+                        layers=["z-projection", "annotate_pre"]  # , "soma"]
                     ),
                     # neuroglancer.LayerGroupViewer(
                     #     layers=["z-projection", "indicators", "Selection Boxes"]
