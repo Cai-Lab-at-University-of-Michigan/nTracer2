@@ -29,6 +29,7 @@ from ntracer.tracing.update_functions import UpdateFunctions
 from ntracer.versioning import Versioning
 from ntracer.visualization.image import ImageFunctions
 from ntracer.visualization.indicator import IndicatorFunctions
+from ntracer.visualization.freehand import FreehandFunctions
 import os
 from fastapi.staticfiles import StaticFiles
 
@@ -50,6 +51,7 @@ user_id = 0
 TOKEN = "ntracer2"
 
 def clear_points():
+    FreehandFunctions.clear_points()
     IndicatorFunctions.clear_points()
     ImageFunctions.image_write()
     NtracerFunctions.set_selected_points()
@@ -95,13 +97,14 @@ async def index() -> RedirectResponse:
         # defines all of the hot key commands
         viewer.actions.add("undo", lambda s: Versioning.undo())
         viewer.actions.add("redo", lambda s: Versioning.redo())
+        viewer.actions.add("freehand draw", lambda s: NtracerFunctions.ctrl_keyf_left_click(s))
         viewer.actions.add("add point", lambda s: NtracerFunctions.ctrl_left_click(s))
         viewer.actions.add("add point no shift", lambda s: NtracerFunctions.ctrl_left_click(s, no_mean_shift=True))
         viewer.actions.add(
-            "connect points", lambda s: TracingFunctions.connect_selected_points()
+            "connect/commit points", lambda s: TracingFunctions.connect_or_commit_points()
         )
         viewer.actions.add(
-            "connect soma", lambda s: TracingFunctions.connect_selected_points(is_soma=True)
+            "connect/commit soma", lambda s: TracingFunctions.connect_or_commit_points(is_soma=True)
         )
         viewer.actions.add(
             "clear selections", lambda s: clear_points()
@@ -120,10 +123,11 @@ async def index() -> RedirectResponse:
         with viewer.config_state.txn() as s:
             s.input_event_bindings.viewer["control+keyz"] = "undo"
             s.input_event_bindings.viewer["control+keyy"] = "redo"
+            s.input_event_bindings.viewer["keyf"] = "freehand draw"
             s.input_event_bindings.data_view["control+mousedown0"] = "add point"
             s.input_event_bindings.data_view["alt+mousedown0"] = "add point no shift"
-            s.input_event_bindings.data_view["keya"] = "connect points"
-            s.input_event_bindings.data_view["keys"] = "connect soma"
+            s.input_event_bindings.data_view["keya"] = "connect/commit points"
+            s.input_event_bindings.data_view["keys"] = "connect/commit soma"
             s.input_event_bindings.data_view["mousedown2"] = "clear selections"
             s.input_event_bindings.data_view["control+mousedown2"] = "clear selections"
             s.input_event_bindings.data_view["alt+mousedown2"] = "clear selections"

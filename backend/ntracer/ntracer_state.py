@@ -10,6 +10,7 @@ from neuroglancer.viewer_config_state import ActionState
 from cdn.cdn_array import CdnArray
 from cdn.cdn_helper import CdnHelper
 from ntracer.helpers.dashboard_state_helper import DashboardState
+from ntracer.helpers.freehand_state_helper import FreehandState
 from ntracer.helpers.tracing_data_helper import Coords
 from ntracer.utils.timing import print_time
 
@@ -55,6 +56,7 @@ class NtracerState:
 
     dashboard_state: DashboardState = DashboardState()
     selected_tracing_points: list | None = None
+    freehand_state: FreehandState = FreehandState()
     startingPoint: tuple[int, int, int] | None = None
     endingPoint: tuple[int, int, int] | None = None
     currentAction: str | None = None
