@@ -17,6 +17,13 @@ class CdnHelper:
          self.session = requests.Session()
          self.async_session = httpx.AsyncClient()
          self.base_url = base_url
+         self.initiate_database()
+
+    @print_time(LOGGER_TAG)
+    def initiate_database(self):
+        res = self.session.get(f"{self.base_url}")
+        if res.status_code != 200:
+            raise Exception(f"initiate_database failed: http status code: {res.status_code}")
 
     @print_time(LOGGER_TAG)
     def get_all_neurons(self, imageid: str | None = None):
