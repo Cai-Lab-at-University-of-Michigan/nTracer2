@@ -197,7 +197,7 @@ async def dashboard_stream(request: Request):
                     "event": "state",
                     "retry": 15000,
                     "data": res,
-                    "id": id
+                    "id": str(id)
                 }
 
             id += 1
