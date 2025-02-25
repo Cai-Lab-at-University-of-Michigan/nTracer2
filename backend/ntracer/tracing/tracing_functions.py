@@ -111,7 +111,6 @@ class TracingFunctions:
         NtracerFunctions.select_point(end, no_mean_shift=is_soma, is_end_point=False)
 
         state.dashboard_state.selected_point = new_path[-1]  # type: ignore
-
         NtracerFunctions.set_selected_points()
         ImageFunctions.image_write()
 
@@ -216,20 +215,27 @@ class TracingFunctions:
         if FreehandFunctions.is_empty():
             return
         
+        # Apply smoothing before committing
+        FreehandFunctions.smooth_current_path(
+            simplify_tolerance=2.0,
+            smooth_factor=0.5,
+            iterations=1
+        )
+        
         if is_soma:
             TracingFunctions._add_traced_soma(state.freehand_state.traversed_points_physical)
         else:
             TracingFunctions._add_traced_neurites(state.freehand_state.traversed_points_physical)
 
-        # deselect
-        if state.freehand_state.is_dashboard_point_selected:
-            state.dashboard_state.selected_indexes = [[state.dashboard_state.selected_neuron_id]]
-            state.dashboard_state.selected_soma_z_slice = -1
-            state.dashboard_state.selected_point = None
-
         config_state: ConfigState
         with state.viewer.config_state.txn() as config_state:
             config_state.status_messages["commit"] = "drawing committed"
+
+        NtracerFunctions.select_point(state.freehand_state.traversed_points_pixel[-1], no_mean_shift=True, is_end_point=False)
+        state.dashboard_state.selected_point = tuple(map(float, state.freehand_state.traversed_points_physical[-1]))  # type: ignore
+        NtracerFunctions.set_selected_points()
+        if is_soma:
+           state.dashboard_state.selected_soma_z_slice = state.freehand_state.traversed_points_physical[-1][2]
 
         FreehandFunctions.clear_freehand_state()
         FreehandFunctions.update_canvas()

@@ -1,5 +1,5 @@
 import neuroglancer
-
+import numpy as np
 from neuroglancer.viewer_config_state import ConfigState, ActionState
 
 from ntracer.ntracer_state import NtracerState
@@ -45,10 +45,65 @@ class FreehandFunctions:
     @inject_state
     def clear_freehand_state(state: NtracerState):
         state.freehand_state.now_at = None
-        state.freehand_state.dashboard_selected_point = None
+        # state.freehand_state.dashboard_selected_point = None
         state.freehand_state.traversed_points_pixel = []
         state.freehand_state.traversed_points_physical = []
+
+    @staticmethod
+    @inject_state
+    def smooth_current_path(state: NtracerState, 
+                        simplify_tolerance: float = 2.0,
+                        smooth_factor: float = 0.5,
+                        iterations: int = 1):
+        if len(state.freehand_state.traversed_points_pixel) < 3:
+            return
         
+        points_array = np.array(state.freehand_state.traversed_points_pixel)
+        
+        # Step 1: Simplify - remove redundant points
+        simplified = []
+        if len(points_array) >= 2:
+            simplified = [points_array[0]]
+            
+            for i in range(1, len(points_array)):
+                last_point = simplified[-1]
+                current_point = points_array[i]
+                
+                dx = current_point[0] - last_point[0]
+                dy = current_point[1] - last_point[1]
+                dz = current_point[2] - last_point[2]
+                distance = np.sqrt(dx*dx + dy*dy + dz*dz)
+                
+                if distance > simplify_tolerance:
+                    simplified.append(current_point)
+            
+            if not np.array_equal(simplified[-1], points_array[-1]):
+                simplified.append(points_array[-1])
+        
+        simplified = np.array(simplified)
+        
+        # Step 2: Smooth the path
+        smoothed = simplified.copy()
+        if len(simplified) >= 3:
+            for _ in range(iterations):
+                new_smoothed = smoothed.copy()
+                
+                for i in range(1, len(smoothed) - 1):
+                    prev = smoothed[i - 1]
+                    current = smoothed[i]
+                    next_point = smoothed[i + 1]
+                    
+                    new_smoothed[i] = current * (1 - smooth_factor) + (prev + next_point) / 2 * smooth_factor
+                
+                smoothed = new_smoothed
+        
+        smoothed_points = [(int(round(x)), int(round(y)), int(round(z))) for x, y, z in smoothed]
+        state.freehand_state.traversed_points_pixel = smoothed_points
+        state.freehand_state.traversed_points_physical = [
+            NeuronHelper.pixels_to_physical(point, state.coords.scale)
+            for point in smoothed_points
+        ]
+
     @staticmethod
     @inject_state
     def update_canvas(state: NtracerState) -> None:

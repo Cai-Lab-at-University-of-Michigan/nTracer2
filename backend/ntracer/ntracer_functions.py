@@ -160,7 +160,7 @@ class NtracerFunctions:
 
     @staticmethod
     @inject_state
-    def ctrl_keyf_left_click(state: NtracerState, action_state: ActionState):
+    def hold_keyf(state: NtracerState, action_state: ActionState):
         if action_state.mouse_voxel_coordinates is not None: 
             if state.startingPoint is not None:
                 state.freehand_state.traversed_points_pixel.append(state.startingPoint)

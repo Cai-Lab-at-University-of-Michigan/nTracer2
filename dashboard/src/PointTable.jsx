@@ -39,7 +39,9 @@ export default function PointTable({ pointList }) {
 
     useEffect(() => {
         if (!!document) {
-            const selectedRow = document.getElementById(`pointrow-${selectedRowIndex}`)
+            // const selectedRow = document.getElementById(`pointrow-${selectedRowIndex}`)
+            // fix id mismatch so that auto scroll works
+            const selectedRow = document.getElementById(rows[selectedRowIndex]?.id)
             if (!!selectedRow) {
                 const rect = selectedRow.getBoundingClientRect()
                 const isInView = rect.top >= 0 && rect.bottom <= window.innerHeight
