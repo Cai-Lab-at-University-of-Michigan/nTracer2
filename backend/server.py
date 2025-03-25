@@ -97,7 +97,7 @@ async def index() -> RedirectResponse:
         # defines all of the hot key commands
         viewer.actions.add("undo", lambda s: Versioning.undo())
         viewer.actions.add("redo", lambda s: Versioning.redo())
-        viewer.actions.add("freehand draw", lambda s: NtracerFunctions.ctrl_keyf_left_click(s))
+        viewer.actions.add("freehand draw", lambda s: NtracerFunctions.hold_keyf(s))
         viewer.actions.add("add point", lambda s: NtracerFunctions.ctrl_left_click(s))
         viewer.actions.add("add point no shift", lambda s: NtracerFunctions.ctrl_left_click(s, no_mean_shift=True))
         viewer.actions.add(
@@ -197,7 +197,7 @@ async def dashboard_stream(request: Request):
                     "event": "state",
                     "retry": 15000,
                     "data": res,
-                    "id": id
+                    "id": str(id)
                 }
 
             id += 1
