@@ -37,6 +37,36 @@ export default function PointTable({ pointList }) {
         return -1
     }, [dashboardState.selected_point, pointList])
 
+    // Track pointList change
+    const prevLastPointRef = useRef(null)
+
+    useEffect(() => {
+        if (pointList.length > 0) {
+            const lastPoint = pointList[pointList.length - 1]
+            const prevLastPoint = prevLastPointRef.current
+            
+            if (!prevLastPoint || 
+                (prevLastPoint.x !== lastPoint.x || 
+                 prevLastPoint.y !== lastPoint.y || 
+                 prevLastPoint.z !== lastPoint.z || 
+                 prevLastPoint.type !== lastPoint.type ||
+                 prevLastPoint.r !== lastPoint.r)) {
+                
+                // Auto-select
+                dashboardDispatch({
+                    type: 'tableSelect',
+                    payload: {
+                        pointSelected: [lastPoint.x, lastPoint.y, lastPoint.z]
+                    }
+                })
+            }
+        }
+
+        prevLastPointRef.current = pointList.length > 0 ? 
+            { ...pointList[pointList.length - 1] } : null;
+            
+    }, [pointList, dashboardDispatch])
+
     useEffect(() => {
         if (!!document) {
             // const selectedRow = document.getElementById(`pointrow-${selectedRowIndex}`)
@@ -51,7 +81,7 @@ export default function PointTable({ pointList }) {
                 }
             }
         }
-    }, [selectedRowIndex])
+    }, [selectedRowIndex, rows])
 
     const onRowSelect = (i) => {
         let xyz = null
