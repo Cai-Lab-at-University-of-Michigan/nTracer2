@@ -84,8 +84,12 @@ async def index() -> RedirectResponse:
         state.viewer = viewer
         ImageFunctions.image_init()
         await NtracerFunctions.download_from_database(state.coords)
+        if len(coords.shape) < 4: # single-channel 3D image
+            dashboard_state.channels = 1
+        else:
+            dashboard_state.channels = coords.shape[1]
         ImageFunctions.image_write()
-        dashboard_state.channels = coords.shape[1]
+        
         dashboard_state.selected_display_channels = list(
             range(dashboard_state.channels)
         )
@@ -100,24 +104,12 @@ async def index() -> RedirectResponse:
         viewer.actions.add("freehand draw", lambda s: NtracerFunctions.hold_keyf(s))
         viewer.actions.add("add point", lambda s: NtracerFunctions.ctrl_left_click(s))
         viewer.actions.add("add point no shift", lambda s: NtracerFunctions.ctrl_left_click(s, no_mean_shift=True))
-        viewer.actions.add(
-            "connect/commit points", lambda s: TracingFunctions.connect_or_commit_points()
-        )
-        viewer.actions.add(
-            "connect/commit soma", lambda s: TracingFunctions.connect_or_commit_points(is_soma=True)
-        )
-        viewer.actions.add(
-            "clear selections", lambda s: clear_points()
-        )
-        viewer.actions.add(
-            "select branch", lambda s: NtracerFunctions.auto_select_branch(s)
-        )
-        viewer.actions.add(
-            "select branch endpoint", lambda s: NtracerFunctions.auto_select_branch(s, get_endpoint=True)
-        )
-        viewer.actions.add(
-            "complete soma", lambda s: complete_soma()
-        )
+        viewer.actions.add("connect/commit points", lambda s: TracingFunctions.connect_or_commit_points())
+        viewer.actions.add("connect/commit soma", lambda s: TracingFunctions.connect_or_commit_points(is_soma=True))
+        viewer.actions.add("clear selections", lambda s: clear_points())
+        viewer.actions.add("select branch", lambda s: NtracerFunctions.auto_select_branch(s))
+        viewer.actions.add("select branch endpoint", lambda s: NtracerFunctions.auto_select_branch(s, get_endpoint=True))
+        viewer.actions.add("complete soma", lambda s: complete_soma())
 
         s: ConfigState
         with viewer.config_state.txn() as s:

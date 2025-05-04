@@ -168,7 +168,7 @@ class NtracerFunctions:
             if state.endingPoint is not None:
                 state.endingPoint = None
 
-            if state.dashboard_state.is_point_selected and not state.freehand_state.is_dashboard_point_selected:
+            if state.dashboard_state.is_point_selected:
                 state.freehand_state.traversed_points_pixel.append(state.dashboard_state.selected_point)
                 state.freehand_state.is_dashboard_point_selected = True
 
@@ -212,10 +212,18 @@ class NtracerFunctions:
             raise Warning("Cannot convert neuron to swc")
 
         neuron_id = state.coords.cdn_helper.add_neuron(neuron_swc, neuron_id)
+        if hasattr(state.coords, 'roots'):
+            state.coords.roots.dashboard_state.set_state_dict(state.dashboard_state)
         state.coords.new_state()
         state.coords.roots.actions.append(Action(ActionType.ADD_NEURON, neuron_id))
         state.coords.roots[neuron_id] = neuron
         NtracerFunctions.request_fileserver_update()
+
+        # need another state for versioning
+        if hasattr(state.coords, 'roots'):
+            state.coords.roots.dashboard_state.set_state_dict(state.dashboard_state)
+        state.coords.new_state()
+        state.coords.roots.actions.append(Action(ActionType.MODIFY_NEURON, neuron_id))
         return neuron_id
     
     @staticmethod

@@ -102,7 +102,12 @@ export const DashboardReducer = (state, action) => {
             send_dashboard_state_update(newState)
             return newState
         case 'updateAllProperties':
-            return action.payload.newState
+            newState = {
+                ...state,
+                ...action.payload.newState
+            }
+            send_dashboard_state_update(newState)
+            return newState
         case 'toggleDisplayChannel':
             if (state.selected_display_channels.includes(action.payload.channel)) {
                 newState = {

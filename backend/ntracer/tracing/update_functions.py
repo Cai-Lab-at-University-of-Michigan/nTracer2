@@ -36,7 +36,8 @@ class UpdateFunctions:
 
         if len(neuron_ids) < 2:
             return
-
+        if hasattr(coords, 'roots'):
+            coords.roots.dashboard_state.set_state_dict(state.dashboard_state)
         coords.new_state()
         for neuron_id in neuron_ids:
             coords.roots.actions.append(Action(ActionType.MODIFY_NEURON, neuron_id))
@@ -66,6 +67,8 @@ class UpdateFunctions:
         selected_point: tuple[int, int, int]
     ):
         coords = state.coords
+        if hasattr(coords, 'roots'):
+            coords.roots.dashboard_state.set_state_dict(state.dashboard_state)
         coords.new_state()
         neuron = coords.roots[neuron_id]
         branch = NeuronHelper.move_to_branches(neuron, branch_indexes)
@@ -96,7 +99,8 @@ class UpdateFunctions:
         state: NtracerState, neuron_id: int, branch_indexes: list[int]
     ):
         coords = state.coords
-
+        if hasattr(coords, 'roots'):
+            coords.roots.dashboard_state.set_state_dict(state.dashboard_state)
         coords.new_state()
         neuron = coords.roots[neuron_id]
         NeuronHelper.set_primary_branch(neuron, branch_indexes)
@@ -117,6 +121,8 @@ class UpdateFunctions:
         branch_indexes2: list[int],
     ):
         coords = state.coords
+        if hasattr(coords, 'roots'):
+            coords.roots.dashboard_state.set_state_dict(state.dashboard_state)
         coords.new_state()
 
         neuron1 = coords.roots[neuron_id1]

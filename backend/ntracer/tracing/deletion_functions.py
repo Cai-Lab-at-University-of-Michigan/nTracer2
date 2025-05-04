@@ -14,6 +14,8 @@ class DeletionFunctions:
     @inject_state
     def delete_neuron(state: NtracerState, neuron_id: int):
         coords = state.coords
+        if hasattr(coords, 'roots'):
+            coords.roots.dashboard_state.set_state_dict(state.dashboard_state)
         coords.new_state()
         coords.roots.actions.append(Action(ActionType.DELETE_NEURON, neuron_id))
         coords.remove_root(neuron_id)
@@ -33,7 +35,8 @@ class DeletionFunctions:
         branch_indexes: list[int],
     ):
         coords = state.coords
-
+        if hasattr(coords, 'roots'):
+            coords.roots.dashboard_state.set_state_dict(state.dashboard_state)
         coords.new_state()
         neuron = coords.roots[neuron_id]
         if len(branch_indexes) == 1:  # Delete root branch
@@ -72,6 +75,8 @@ class DeletionFunctions:
         selected_point: tuple[int, int, int],
     ):
         coords = state.coords
+        if hasattr(coords, 'roots'):
+            coords.roots.dashboard_state.set_state_dict(state.dashboard_state)
         coords.new_state()
         coords.roots.actions.append(Action(ActionType.MODIFY_NEURON, neuron_id))
         if len(branch_indexes) == 0:  # Soma
@@ -115,7 +120,8 @@ class DeletionFunctions:
         selected_soma_z_slice: int,
     ):
         coords = state.coords
-
+        if hasattr(coords, 'roots'):
+            coords.roots.dashboard_state.set_state_dict(state.dashboard_state)
         coords.new_state()
         neuron = coords.roots[neuron_id]
         z_slices = None
