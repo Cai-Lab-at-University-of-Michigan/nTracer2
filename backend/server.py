@@ -123,7 +123,7 @@ async def index() -> RedirectResponse:
             s.input_event_bindings.data_view["mousedown2"] = "clear selections"
             s.input_event_bindings.data_view["control+mousedown2"] = "clear selections"
             s.input_event_bindings.data_view["alt+mousedown2"] = "clear selections"
-            s.input_event_bindings.data_view["alt+dblclick0"] = "select branch endpoint"
+            s.input_event_bindings.data_view["shift+mousedown0"] = "select branch"
             s.input_event_bindings.data_view["keyo"] = "complete soma"
 
     viewer_url = quote_plus(

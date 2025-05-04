@@ -340,7 +340,8 @@ class NtracerFunctions:
                 else:
                     tree_keys.append(tree_key + "_" + str(idx))
                     tree_key = tree_key + "_" + str(idx)
-
+            
+            NtracerFunctions.change_coordinate_on_select(current_coords, coords.scale)
 
     @staticmethod
     @inject_state
