@@ -20,7 +20,7 @@ export default function SomaTable({ somaList }) {
     }, [somaList, dashboardState.selected_indexes, dashboardState.scale])
 
     useEffect(() => {
-        if (dashboardState.selected_indexes.length === 1 && somaList.length > 0) {
+        if (dashboardState.selected_indexes.length === 1 && somaList.length > 0 && dashboardState.selected_point === null) {
             const lastSoma = somaList[somaList.length - 1]
             const prevLastSoma = prevLastSomaRef.current
 

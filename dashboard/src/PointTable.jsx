@@ -41,7 +41,7 @@ export default function PointTable({ pointList }) {
     const prevLastPointRef = useRef(null)
 
     useEffect(() => {
-        if (pointList.length > 0) {
+        if (pointList.length > 0 && dashboardState.selected_point === null) {
             const lastPoint = pointList[pointList.length - 1]
             const prevLastPoint = prevLastPointRef.current
             
