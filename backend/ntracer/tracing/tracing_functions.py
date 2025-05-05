@@ -111,6 +111,18 @@ class TracingFunctions:
             config_state.status_messages["connect"] = "tracing generated"
 
         NtracerFunctions.select_point(end, no_mean_shift=is_soma, is_end_point=False)
+        
+        if state.dashboard_state.is_neuron_selected:
+            neuron_id = state.dashboard_state.selected_neuron_id
+            neuron = state.coords.roots[neuron_id]
+            branch_indexes = NeuronHelper.get_branch_indexes_from_point(
+                neuron, new_path[-1]
+            )
+            if branch_indexes is not None:
+                state.dashboard_state.selected_indexes = [
+                    [neuron_id] + branch_indexes
+                ]
+
         state.dashboard_state.selected_point = new_path[-1]  # type: ignore
         NtracerFunctions.change_coordinate_on_select(state.dashboard_state.selected_point, state.coords.scale)
 
@@ -258,6 +270,17 @@ class TracingFunctions:
             TracingFunctions._add_traced_soma(interpolate_soma_points(state.freehand_state.traversed_points_pixel))
         else:
             TracingFunctions._add_traced_neurites(state.freehand_state.traversed_points_physical)
+
+        if state.dashboard_state.is_neuron_selected:
+            neuron_id = state.dashboard_state.selected_neuron_id
+            neuron = state.coords.roots[neuron_id]
+            branch_indexes = NeuronHelper.get_branch_indexes_from_point(
+                neuron, state.freehand_state.traversed_points_physical[-1]
+            )
+            if branch_indexes is not None:
+                state.dashboard_state.selected_indexes = [
+                    [neuron_id] + branch_indexes
+                ]
 
         NtracerFunctions.select_point(state.freehand_state.traversed_points_pixel[-1], no_mean_shift=is_soma, is_end_point=False)
         state.dashboard_state.selected_point = state.freehand_state.traversed_points_physical[-1]

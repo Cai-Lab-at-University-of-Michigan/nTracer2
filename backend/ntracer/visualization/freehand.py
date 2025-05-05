@@ -45,6 +45,7 @@ class FreehandFunctions:
     @inject_state
     def clear_freehand_state(state: NtracerState):
         state.freehand_state.now_at = None
+        state.freehand_state.is_dashboard_point_selected = False
         state.freehand_state.traversed_points_pixel = []
         state.freehand_state.traversed_points_physical = []
 

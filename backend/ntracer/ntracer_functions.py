@@ -168,7 +168,7 @@ class NtracerFunctions:
             if state.endingPoint is not None:
                 state.endingPoint = None
 
-            if state.dashboard_state.is_point_selected:
+            if state.dashboard_state.is_point_selected and not state.freehand_state.is_dashboard_point_selected:
                 state.freehand_state.traversed_points_pixel.append(state.dashboard_state.selected_point)
                 state.freehand_state.is_dashboard_point_selected = True
 
