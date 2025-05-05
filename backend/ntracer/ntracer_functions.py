@@ -50,7 +50,6 @@ class NtracerFunctions:
                 state.cdn_url.geturl(),
                 state.dataset_id,
             )
-            print(x)
             new_point = x
         else:
             new_point = point
