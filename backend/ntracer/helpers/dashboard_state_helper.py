@@ -23,6 +23,11 @@ class DashboardState:
     def get_state_dict(self) -> dict:
         return vars(self)
 
+    def set_state_dict(self, s: 'DashboardState') -> None:
+        for key, value in vars(s).items():
+            if hasattr(self, key):
+                setattr(self, key, value)
+
     @property
     def selected_neuron_id(self) -> int:
         if len(self.selected_indexes) != 1:

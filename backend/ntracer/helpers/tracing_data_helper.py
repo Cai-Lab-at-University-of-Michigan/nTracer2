@@ -13,6 +13,7 @@ from cdn.cdn_array import CdnArray
 from cdn.cdn_helper import CdnHelper
 from ntracer.helpers.neuron_dict import NeuronDict
 from ntracer.helpers.ngauge_helper import NeuronHelper, TracingPointHelper
+from ntracer.helpers.dashboard_state_helper import DashboardState
 
 MAX_HISTORY_SIZE = 50
 sys.setrecursionlimit(10000)
@@ -32,6 +33,7 @@ class NeuronState:
     neuron_dict: NeuronDict = field(default_factory=NeuronDict)
     branched_dict: dict = field(default_factory=dict)
     actions: list = field(default_factory=list)
+    dashboard_state: DashboardState = field(default_factory=DashboardState)
 
     def __getitem__(self, key: int) -> Neuron:
         return self.neuron_dict[key]
@@ -122,6 +124,7 @@ class Coords:
         new_coord = NeuronState()
         new_coord.neuron_dict = deepcopy(self.roots.neuron_dict)
         new_coord.branched_dict = deepcopy(self.roots.branched_dict)
+        new_coord.dashboard_state = deepcopy(self.roots.dashboard_state)
         self.roots = new_coord
 
     def undo(self):

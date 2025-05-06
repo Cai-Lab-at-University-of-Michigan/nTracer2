@@ -7,6 +7,7 @@ import SomaTable from './SomaTable'
 import Status from './Status'
 import {initialDashboardState, DashboardContext, DashboardReducer} from './DashboardReducer'
 import { SocketContext } from './Context'
+import { NotificationProvider } from './Notification'
 import { useEffect, useState, useReducer, useRef } from 'react'
 import styled from 'styled-components/macro'
 import { io } from 'socket.io-client';
@@ -37,6 +38,10 @@ function App() {
       setPointList(points_state)
       setSomaList(soma_state)
     })
+    
+    return () => {
+      evtSource.close();
+    };
   },[])
 
   // useEffect(() => {
@@ -67,72 +72,107 @@ function App() {
     // })
   }, [])
 
-  const deleteNeuron = () => {
-    fetch(`${BASE_URL}/neuron/delete`)
-    // socket.emit('deleteNeuron')
+  const deleteNeuron = async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/neuron/delete`);
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error deleting neuron:", error);
+      return { success: false, message: "Network error while deleting neuron" };
+    }
   }
 
-  const deleteBranch = () => {
-    fetch(`${BASE_URL}/branch/delete`)
-    // socket.emit('deleteBranch')
+  const deleteBranch = async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/branch/delete`);
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error deleting branch:", error);
+      return { success: false, message: "Network error while deleting branch" };
+    }
   }
 
-  const deletePoint = () => {
-    fetch(`${BASE_URL}/point/delete`)
-    // socket.emit('deletePoint')
+  const deletePoint = async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/point/delete`);
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error deleting point:", error);
+      return { success: false, message: "Network error while deleting point" };
+    }
   }
 
   const submitCoordinates = (coordinates) => {
     // fetch(`${BASE_URL}/neuron/delete`)
     // socket.emit('move_to_coordinates', coordinates)
+    // return { success: true, message: `Moved to coordinates (${coordinates[0]}, ${coordinates[1]}, ${coordinates[2]})` };
   }
 
-  const completeSoma = () => {
-    fetch(`${BASE_URL}/soma/complete`)
-    // socket.emit('complete_soma')
+  const completeSoma = async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/soma/complete`);
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error completing soma:", error);
+      return { success: false, message: "Network error while completing soma" };
+    }
   }
   
   return (
-    <DashboardContext.Provider value={[dashboardState, dashboardDispatch]}>
-      <Container className='App'>
-        {/* <TopMenu /> */}
-        <LeftContent>
-          <Header>
-            <HeaderText>nTracer2</HeaderText>
-            <HeaderSmallText>v1.0.0-alpha1</HeaderSmallText>
-          </Header>
-          <MainContainer>
-            <LeftContainer padding={5}>
-              <WhiteContainer flex={1}>
-                {/* <TreeControl>
-                  <TreeControlButton onClick={()=>{}}>+</TreeControlButton>
-                  <TreeControlButton onClick="clearCurrent(this)">clear</TreeControlButton>
-                  <TreeControlButton onClick="fillTree(this)">show</TreeControlButton>
-                  <input type="checkbox" onchange="toggleCheckbox(this)" />
-                  <br />
-                  <br />
-                </TreeControl> */}
-                <Folders>
-                  <TreePanel data={data} />
-                </Folders>
-              </WhiteContainer>
-              <div style={{display: 'flex', overflow: 'scroll', height: '40%', boxShadow: '0px -5px 10px 5px rgba(50, 50, 50, 0.1)' }}>
-                <SomaTable somaList={somaList} />
-                <PointTable pointList={pointList} />
-              </div>
-            </LeftContainer>
-          </MainContainer>
-          {/* <Status statusMessage={statusMessage}/> */}
-        </LeftContent>
-        <RightContainer>
-            <SideMenu deleteNeuron={deleteNeuron}
-                      deleteBranch={deleteBranch}
-                      deletePoint={deletePoint}
-                      submitCoordinates={submitCoordinates}
-                      completeSoma={completeSoma} />
-        </RightContainer>
-      </Container>
-    </DashboardContext.Provider>
+    <NotificationProvider>
+      <DashboardContext.Provider value={[dashboardState, dashboardDispatch]}>
+        <Container className='App'>
+          {/* <TopMenu /> */}
+          <LeftContent>
+            <Header>
+              <HeaderText>nTracer2</HeaderText>
+              <HeaderSmallText>v1.0.0-alpha1</HeaderSmallText>
+            </Header>
+            <MainContainer>
+              <LeftContainer padding={5}>
+                <WhiteContainer flex={1}>
+                  {/* <TreeControl>
+                    <TreeControlButton onClick={()=>{}}>+</TreeControlButton>
+                    <TreeControlButton onClick="clearCurrent(this)">clear</TreeControlButton>
+                    <TreeControlButton onClick="fillTree(this)">show</TreeControlButton>
+                    <input type="checkbox" onchange="toggleCheckbox(this)" />
+                    <br />
+                    <br />
+                  </TreeControl> */}
+                  <Folders>
+                    <TreePanel data={data} />
+                  </Folders>
+                </WhiteContainer>
+                <div style={{display: 'flex', overflow: 'scroll', height: '40%', boxShadow: '0px -5px 10px 5px rgba(50, 50, 50, 0.1)' }}>
+                  <SomaTable somaList={somaList} />
+                  <PointTable pointList={pointList} />
+                </div>
+              </LeftContainer>
+            </MainContainer>
+            {/* <Status statusMessage={statusMessage}/> */}
+          </LeftContent>
+          <RightContainer>
+              <SideMenu deleteNeuron={deleteNeuron}
+                        deleteBranch={deleteBranch}
+                        deletePoint={deletePoint}
+                        submitCoordinates={submitCoordinates}
+                        completeSoma={completeSoma} />
+          </RightContainer>
+        </Container>
+      </DashboardContext.Provider>
+    </NotificationProvider>
   );
 }
 
@@ -205,20 +245,6 @@ height: 50%;
 background-color: #ffffff;
 overflow: auto;
 padding-bottom: 1rem;
-`
-
-const TreeControl = styled.div`
-display: flex;
-flex-direction: column;
-flex-shrink: 1;
-border: 1px solid;
-text-align: center;
-padding: 0.5rem;
-`
-
-const TreeControlButton = styled.button`
-margin: 0.5rem;
-width: 4rem;
 `
 
 const Folders = styled.div`

@@ -47,6 +47,8 @@ class TracingFunctions:
     @inject_state
     def complete_soma(state: NtracerState, neuron_id: int, selected_soma_z_slice: int):
         coords = state.coords
+        if hasattr(coords, 'roots'):
+            coords.roots.dashboard_state.set_state_dict(state.dashboard_state)
         coords.new_state()
         coords.roots.actions.append(Action(ActionType.MODIFY_NEURON, neuron_id))
         neuron = coords.roots[neuron_id]
@@ -66,8 +68,7 @@ class TracingFunctions:
     @inject_state
     def _connect_points(state: NtracerState, start: tuple, end: tuple, is_soma: bool = False):
         if state.dashboard_state.is_soma_selected and not is_soma:
-            IndicatorFunctions.add_status_message("You can only make a soma tracing (s key) with a soma selected on the dashboard", "connect")
-            return
+            state.dashboard_state.selected_soma_z_slice = -1
         
         print("Running Astar:", start, end)
         try:
@@ -109,8 +110,20 @@ class TracingFunctions:
             config_state.status_messages["connect"] = "tracing generated"
 
         NtracerFunctions.select_point(end, no_mean_shift=is_soma, is_end_point=False)
+        
+        if state.dashboard_state.is_neuron_selected:
+            neuron_id = state.dashboard_state.selected_neuron_id
+            neuron = state.coords.roots[neuron_id]
+            branch_indexes = NeuronHelper.get_branch_indexes_from_point(
+                neuron, new_path[-1]
+            )
+            if branch_indexes is not None:
+                state.dashboard_state.selected_indexes = [
+                    [neuron_id] + branch_indexes
+                ]
 
         state.dashboard_state.selected_point = new_path[-1]  # type: ignore
+        NtracerFunctions.change_coordinate_on_select(state.dashboard_state.selected_point, state.coords.scale)
 
         NtracerFunctions.set_selected_points()
         ImageFunctions.image_write()
@@ -120,6 +133,8 @@ class TracingFunctions:
     @inject_state
     def _add_traced_neurites(state: NtracerState, new_path: list):
         if state.dashboard_state.is_neuron_selected:
+            if hasattr(state.coords, 'roots'):
+                state.coords.roots.dashboard_state.set_state_dict(state.dashboard_state)
             state.coords.new_state()
             state.coords.roots.actions.append(
                 Action(
@@ -188,17 +203,25 @@ class TracingFunctions:
             new_neuron_id = NtracerFunctions.add_new_neuron(neuron)
             state.dashboard_state.selected_indexes = [[new_neuron_id, 0]]
 
-
     @staticmethod
     @inject_state
     def _add_traced_soma(state: NtracerState, new_path: list):
         if state.dashboard_state.is_neuron_selected:
+            if hasattr(state.coords, 'roots'):
+                state.coords.roots.dashboard_state.set_state_dict(state.dashboard_state)
+            state.coords.new_state()
+            state.coords.roots.actions.append(
+                Action(
+                    ActionType.MODIFY_NEURON, state.dashboard_state.selected_neuron_id
+                )
+            )
             neuron_id = state.dashboard_state.selected_neuron_id
             neuron = state.coords.roots[neuron_id]
             neuron.add_soma_points(
                 [(pt[0], pt[1], pt[2], state.coords.radius) for pt in new_path]
             )
             UpdateFunctions.replace_neuron(state.coords, neuron_id)
+            NtracerFunctions.request_fileserver_update()
         else:
             neuron = Neuron()
             neuron.add_soma_points(
@@ -213,19 +236,54 @@ class TracingFunctions:
     @print_time("DB")
     @inject_state
     def commit_selected_points(state: NtracerState, is_soma=False):
+        def interpolate_soma_points(points_list):
+            if len(points_list) < 2:
+                return [NeuronHelper.pixels_to_physical(tuple(p), state.coords.scale) 
+                        for p in points_list]
+            
+            points = np.array(points_list)
+            pixel_pts = []
+            
+            for i in range(len(points) - 1):
+                p1, p2 = points[i], points[i + 1]
+                pixel_pts.append(tuple(p1))
+                
+                dist = np.sqrt((p2[0] - p1[0])**2 + (p2[1] - p1[1])**2)
+                steps = max(20, int(np.ceil(dist)))
+                z = p1[2] if len(p1) > 2 else 0.0
+                
+                for j in range(1, steps):
+                    t = float(j / steps)
+                    x = p1[0] * (1 - t) + p2[0] * t
+                    y = p1[1] * (1 - t) + p2[1] * t
+                    pixel_pts.append((x, y, z))
+            
+            if len(points) > 0:
+                pixel_pts.append(tuple(points[-1]))
+            return [NeuronHelper.pixels_to_physical(tuple([float(p) for p in pt]), state.coords.scale) for pt in pixel_pts]
+
         if FreehandFunctions.is_empty():
             return
         
         if is_soma:
-            TracingFunctions._add_traced_soma(state.freehand_state.traversed_points_physical)
+            TracingFunctions._add_traced_soma(interpolate_soma_points(state.freehand_state.traversed_points_pixel))
         else:
             TracingFunctions._add_traced_neurites(state.freehand_state.traversed_points_physical)
 
-        # deselect
-        if state.freehand_state.is_dashboard_point_selected:
-            state.dashboard_state.selected_indexes = [[state.dashboard_state.selected_neuron_id]]
-            state.dashboard_state.selected_soma_z_slice = -1
-            state.dashboard_state.selected_point = None
+        if state.dashboard_state.is_neuron_selected:
+            neuron_id = state.dashboard_state.selected_neuron_id
+            neuron = state.coords.roots[neuron_id]
+            branch_indexes = NeuronHelper.get_branch_indexes_from_point(
+                neuron, state.freehand_state.traversed_points_physical[-1]
+            )
+            if branch_indexes is not None:
+                state.dashboard_state.selected_indexes = [
+                    [neuron_id] + branch_indexes
+                ]
+
+        NtracerFunctions.select_point(state.freehand_state.traversed_points_pixel[-1], no_mean_shift=is_soma, is_end_point=False)
+        state.dashboard_state.selected_point = state.freehand_state.traversed_points_physical[-1]
+        NtracerFunctions.set_selected_points()
 
         config_state: ConfigState
         with state.viewer.config_state.txn() as config_state:

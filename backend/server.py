@@ -1,6 +1,5 @@
 import dotenv
 from sse_starlette import EventSourceResponse
-
 from ntracer.helpers.dashboard_state_helper import DashboardState
 from ntracer.helpers.ngauge_helper import NeuronHelper
 dotenv.load_dotenv()
@@ -32,7 +31,7 @@ from ntracer.visualization.indicator import IndicatorFunctions
 from ntracer.visualization.freehand import FreehandFunctions
 import os
 from fastapi.staticfiles import StaticFiles
-
+from fastapi.responses import JSONResponse
 
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import RedirectResponse
@@ -56,7 +55,6 @@ def clear_points():
     ImageFunctions.image_write()
     NtracerFunctions.set_selected_points()
 
-
 app.mount("/viewer", StaticFiles(directory="landing", html=True), name="viewer")
 @app.get("/", response_model=None)
 async def index() -> RedirectResponse:
@@ -66,58 +64,43 @@ async def index() -> RedirectResponse:
     dashboard_state = state.dashboard_state
 
     if state.viewer is None:
-        if not hasattr(neuroglancer.AnnotationLayer, "annotation_color"):  # type: ignore
+        if not hasattr(neuroglancer.AnnotationLayer, "annotation_color"):
             from neuroglancer.viewer_state import optional, text_type, wrapped_property
 
-            neuroglancer.AnnotationLayer.annotation_color = wrapped_property(  # type: ignore
+            neuroglancer.AnnotationLayer.annotation_color = wrapped_property(
                 "annotationColor", optional(text_type)
             )
 
         neuroglancer.set_server_bind_address(
-            bind_address="0.0.0.0",  # Allow access from outside Docker container
+            bind_address="0.0.0.0",
             bind_port=state.neuroglancer_port,
         )
 
-        # runs image layer functions
         viewer = neuroglancer.Viewer(token=TOKEN)
         user_id+=1
         state.viewer = viewer
         ImageFunctions.image_init()
         await NtracerFunctions.download_from_database(state.coords)
+        if len(coords.shape) < 4:
+            dashboard_state.channels = 1
+        else:
+            dashboard_state.channels = coords.shape[1]
         ImageFunctions.image_write()
-        dashboard_state.channels = coords.shape[1]
-        dashboard_state.selected_display_channels = list(
-            range(dashboard_state.channels)
-        )
-        dashboard_state.selected_analysis_channels = list(
-            range(dashboard_state.channels)
-        )
+        
+        dashboard_state.selected_display_channels = list(range(dashboard_state.channels))
+        dashboard_state.selected_analysis_channels = list(range(dashboard_state.channels))
 
-        # Add these to html, hover for tip on how to use
-        # defines all of the hot key commands
         viewer.actions.add("undo", lambda s: Versioning.undo())
         viewer.actions.add("redo", lambda s: Versioning.redo())
         viewer.actions.add("freehand draw", lambda s: NtracerFunctions.hold_keyf(s))
         viewer.actions.add("add point", lambda s: NtracerFunctions.ctrl_left_click(s))
         viewer.actions.add("add point no shift", lambda s: NtracerFunctions.ctrl_left_click(s, no_mean_shift=True))
-        viewer.actions.add(
-            "connect/commit points", lambda s: TracingFunctions.connect_or_commit_points()
-        )
-        viewer.actions.add(
-            "connect/commit soma", lambda s: TracingFunctions.connect_or_commit_points(is_soma=True)
-        )
-        viewer.actions.add(
-            "clear selections", lambda s: clear_points()
-        )
-        viewer.actions.add(
-            "select branch", lambda s: NtracerFunctions.auto_select_branch(s)
-        )
-        viewer.actions.add(
-            "select branch endpoint", lambda s: NtracerFunctions.auto_select_branch(s, get_endpoint=True)
-        )
-        viewer.actions.add(
-            "complete soma", lambda s: complete_soma()
-        )
+        viewer.actions.add("connect/commit points", lambda s: TracingFunctions.connect_or_commit_points())
+        viewer.actions.add("connect/commit soma", lambda s: TracingFunctions.connect_or_commit_points(is_soma=True))
+        viewer.actions.add("clear selections", lambda s: clear_points())
+        viewer.actions.add("select branch", lambda s: NtracerFunctions.auto_select_branch(s))
+        viewer.actions.add("select branch endpoint", lambda s: NtracerFunctions.auto_select_branch(s, get_endpoint=True))
+        viewer.actions.add("complete soma", lambda s: complete_soma())
 
         s: ConfigState
         with viewer.config_state.txn() as s:
@@ -131,7 +114,7 @@ async def index() -> RedirectResponse:
             s.input_event_bindings.data_view["mousedown2"] = "clear selections"
             s.input_event_bindings.data_view["control+mousedown2"] = "clear selections"
             s.input_event_bindings.data_view["alt+mousedown2"] = "clear selections"
-            s.input_event_bindings.data_view["alt+dblclick0"] = "select branch endpoint"
+            s.input_event_bindings.data_view["shift+mousedown0"] = "select branch"
             s.input_event_bindings.data_view["keyo"] = "complete soma"
 
     viewer_url = quote_plus(
@@ -166,7 +149,6 @@ def get_points_state():
 def get_soma_state():
     return NtracerFunctions.get_soma_list()
 
-
 @app.get("/stream/dashboard")
 async def dashboard_stream(request: Request):
     async def event_generator():
@@ -174,11 +156,9 @@ async def dashboard_stream(request: Request):
 
         id = 0
         while True:
-            # If client closes connection, stop sending events
             if await request.is_disconnected():
                 break
 
-            # Checks for new messages and return them to client if any
             dashboard_state = get_dashboard_state()
             tracing_state = get_tracing_state()
             points_state = get_points_state()
@@ -232,9 +212,7 @@ async def dashboard_state_update(request: Request):
             or data["selected_point"] != dashboard_state.selected_point
         )
     ):
-        NtracerFunctions.change_coordinate_on_select(
-            data["selected_point"], state.coords.scale
-        )
+        NtracerFunctions.change_coordinate_on_select(data["selected_point"], state.coords.scale)
 
     for key in data:
         if hasattr(dashboard_state, key):
@@ -265,11 +243,19 @@ def delete_neuron():
     neuron_index = dashboard_state.selected_neuron_id
 
     if len(dashboard_state.selected_indexes) == 0:
-        print("No neuron selected")
-        return
+        return JSONResponse(
+            content={"success": False, "message": "No neuron selected"}
+        )
 
-    DeletionFunctions.delete_neuron(neuron_index)
-
+    try:
+        DeletionFunctions.delete_neuron(neuron_index)
+        return JSONResponse(
+            content={"success": True, "message": "Neuron deleted successfully"}
+        )
+    except Exception as e:
+        return JSONResponse(
+            content={"success": False, "message": f"Error: {str(e)}"}
+        )
 
 @app.get("/branch/delete")
 def delete_branch():
@@ -278,17 +264,24 @@ def delete_branch():
     branch_indexes = dashboard_state.selected_branch_indexes
     neuron_id = dashboard_state.selected_neuron_id
 
-    # Only neuron specified, return
     if (
         not dashboard_state.is_neuron_selected
         or branch_indexes is None
         or len(branch_indexes) < 1
     ):
-        print("No branch selected")
-        return
+        return JSONResponse(
+            content={"success": False, "message": "No branch selected"}
+        )
 
-    DeletionFunctions.delete_branch(neuron_id, branch_indexes)
-
+    try:
+        DeletionFunctions.delete_branch(neuron_id, branch_indexes)
+        return JSONResponse(
+            content={"success": True, "message": "Branch deleted successfully"}
+        )
+    except Exception as e:
+        return JSONResponse(
+            content={"success": False, "message": f"Error: {str(e)}"}
+        )
 
 @app.get("/point/delete")
 def delete_point():
@@ -296,12 +289,23 @@ def delete_point():
     dashboard_state = state.dashboard_state
     neuron_id = dashboard_state.selected_neuron_id
     branch_indexes = dashboard_state.selected_branch_indexes
+    
     if dashboard_state.selected_point is None:
-        raise Warning("No point selected")
+        return JSONResponse(
+            content={"success": False, "message": "No point selected"}
+        )
 
-    DeletionFunctions.delete_point(
-        neuron_id, branch_indexes, dashboard_state.selected_point
-    )
+    try:
+        DeletionFunctions.delete_point(
+            neuron_id, branch_indexes, dashboard_state.selected_point
+        )
+        return JSONResponse(
+            content={"success": True, "message": "Point deleted successfully"}
+        )
+    except Exception as e:
+        return JSONResponse(
+            content={"success": False, "message": f"Error: {str(e)}"}
+        )
 
 @app.get("/soma/delete")
 def delete_soma():
@@ -309,18 +313,44 @@ def delete_soma():
     dashboard_state = state.dashboard_state
     neuron_id = dashboard_state.selected_neuron_id
     selected_soma_z_slice = dashboard_state.selected_soma_z_slice
-    DeletionFunctions.delete_soma(neuron_id, selected_soma_z_slice)
+    
+    if selected_soma_z_slice == -1:
+        return JSONResponse(
+            content={"success": False, "message": "No soma selected"}
+        )
+    
+    try:
+        DeletionFunctions.delete_soma(neuron_id, selected_soma_z_slice)
+        return JSONResponse(
+            content={"success": True, "message": "Soma deleted successfully"}
+        )
+    except Exception as e:
+        return JSONResponse(
+            content={"success": False, "message": f"Error: {str(e)}"}
+        )
 
 @app.get("/neuron/combine")
 def combine_neurons():
     state = get_state()
     dashboard_state = state.dashboard_state
-    neuron_ids = [s[0] for s in dashboard_state.selected_indexes]
-    if len(neuron_ids) != len(set(neuron_ids)):
-        return
-    UpdateFunctions.combine_neurons(neuron_ids)
-    dashboard_state.selected_indexes = []
-    dashboard_state.selected_point = None
+    neuron_ids = set([s[0] for s in dashboard_state.selected_indexes])
+    
+    if len(neuron_ids) < 2:
+        return JSONResponse(
+            content={"success": False, "message": "Must select at least 2 neurons"}
+        )
+    
+    try:
+        UpdateFunctions.combine_neurons(list(neuron_ids))
+        dashboard_state.selected_indexes = []
+        dashboard_state.selected_point = None
+        return JSONResponse(
+            content={"success": True, "message": "Neurons combined successfully"}
+        )
+    except Exception as e:
+        return JSONResponse(
+            content={"success": False, "message": f"Error: {str(e)}"}
+        )
 
 @app.get("/branch/break")
 def break_branch():
@@ -328,19 +358,30 @@ def break_branch():
     dashboard_state = state.dashboard_state
 
     if not dashboard_state.is_branch_selected:
-        return
+        return JSONResponse(
+            content={"success": False, "message": "No branch selected"}
+        )
 
     neuron_id = dashboard_state.selected_neuron_id
     selected_branch_indexes = dashboard_state.selected_branch_indexes
     selected_point = dashboard_state.selected_point
 
     if selected_point is None:
-        raise Warning("No point selected")
+        return JSONResponse(
+            content={"success": False, "message": "No point selected"}
+        )
 
-    UpdateFunctions.branch_break(
-        neuron_id, selected_branch_indexes, selected_point
-    )
-
+    try:
+        UpdateFunctions.branch_break(
+            neuron_id, selected_branch_indexes, selected_point
+        )
+        return JSONResponse(
+            content={"success": True, "message": "Branch broken successfully"}
+        )
+    except Exception as e:
+        return JSONResponse(
+            content={"success": False, "message": f"Error: {str(e)}"}
+        )
 
 @app.get("/soma/complete")
 def complete_soma():
@@ -352,12 +393,20 @@ def complete_soma():
         dashboard_state.selected_soma_z_slice == -1
         or len(dashboard_state.selected_indexes) == 0
     ):
-        print("No soma selected")
-        return
+        return JSONResponse(
+            content={"success": False, "message": "No soma selected"}
+        )
 
-    selected_soma_z_slice = dashboard_state.selected_soma_z_slice
-    TracingFunctions.complete_soma(neuron_id, selected_soma_z_slice)
-
+    try:
+        selected_soma_z_slice = dashboard_state.selected_soma_z_slice
+        TracingFunctions.complete_soma(neuron_id, selected_soma_z_slice)
+        return JSONResponse(
+            content={"success": True, "message": "Soma completed successfully"}
+        )
+    except Exception as e:
+        return JSONResponse(
+            content={"success": False, "message": f"Error: {str(e)}"}
+        )
 
 @app.get("/branch/set_primary")
 def set_primary_branch():
@@ -365,28 +414,56 @@ def set_primary_branch():
     dashboard_state = state.dashboard_state
     neuron_id = dashboard_state.selected_neuron_id
     selected_branch_indexes = dashboard_state.selected_branch_indexes
-    UpdateFunctions.set_primary_branch(neuron_id, selected_branch_indexes)
+    
+    if (
+        not dashboard_state.is_branch_selected
+        or selected_branch_indexes is None
+        or len(selected_branch_indexes) < 1
+    ):
+        return JSONResponse(
+            content={"success": False, "message": "No branch selected"}
+        )
+    
+    try:
+        UpdateFunctions.set_primary_branch(neuron_id, selected_branch_indexes)
+        return JSONResponse(
+            content={"success": True, "message": "Primary branch set successfully"}
+        )
+    except Exception as e:
+        return JSONResponse(
+            content={"success": False, "message": f"Error: {str(e)}"}
+        )
 
 @app.get("/branch/join")
 def join_branches():
     state = get_state()
     dashboard_state = state.dashboard_state
-    if len(dashboard_state.selected_indexes) != 2:  # Must have 2 branch selected
-        return
+    
+    if len(dashboard_state.selected_indexes) != 2:
+        return JSONResponse(
+            content={"success": False, "message": "Must select exactly 2 branches"}
+        )
 
-    indexes1 = dashboard_state.selected_indexes[0][1:]
-    indexes2 = dashboard_state.selected_indexes[1][1:]
-    neuron_id1 = dashboard_state.selected_indexes[0][0]
-    neuron_id2 = dashboard_state.selected_indexes[1][0]
-    UpdateFunctions.join_branches(neuron_id1, neuron_id2, indexes1, indexes2)
-
+    try:
+        indexes1 = dashboard_state.selected_indexes[0][1:]
+        indexes2 = dashboard_state.selected_indexes[1][1:]
+        neuron_id1 = dashboard_state.selected_indexes[0][0]
+        neuron_id2 = dashboard_state.selected_indexes[1][0]
+        
+        UpdateFunctions.join_branches(neuron_id1, neuron_id2, indexes1, indexes2)
+        return JSONResponse(
+            content={"success": True, "message": "Branches joined successfully"}
+        )
+    except Exception as e:
+        return JSONResponse(
+            content={"success": False, "message": f"Error: {str(e)}"}
+        )
 
 @app.get("/swc/export")
 async def export_swc(selected: bool):
     state = get_state()
     if selected:
         neuron_ids = [s[0] for s in state.dashboard_state.selected_indexes]
-        print("exporting selected", neuron_ids)
     else:
         neuron_ids = list(state.coords.roots.keys())
 
@@ -407,21 +484,42 @@ async def export_swc(selected: bool):
     return Response(content=out_bin.getvalue(), media_type=
                     'application/zip', headers={'Content-Disposition': f'attachment; filename="{filename}"'})
 
-
 @app.get("/trace/neurite")
 def trace_neurite():
-    TracingFunctions.connect_selected_points()
-
+    try:
+        TracingFunctions.connect_selected_points()
+        return JSONResponse(
+            content={"success": True, "message": "Neurite traced successfully"}
+        )
+    except Exception as e:
+        return JSONResponse(
+            content={"success": False, "message": f"Error: {str(e)}"}
+        )
 
 @app.get("/trace/soma")
 def trace_soma():
-    TracingFunctions.connect_selected_points(is_soma=True)
-
+    try:
+        TracingFunctions.connect_selected_points(is_soma=True)
+        return JSONResponse(
+            content={"success": True, "message": "Soma traced successfully"}
+        )
+    except Exception as e:
+        return JSONResponse(
+            content={"success": False, "message": f"Error: {str(e)}"}
+        )
 
 @app.post("/swc/import")
 async def import_swc(request: Request):
-    data = await request.body()
-    swc_helper.import_swc(data)
+    try:
+        data = await request.body()
+        swc_helper.import_swc(data)
+        return JSONResponse(
+            content={"success": True, "message": "SWC imported successfully"}
+        )
+    except Exception as e:
+        return JSONResponse(
+            content={"success": False, "message": f"Error importing SWC: {str(e)}"}
+        )
 
 @app.get("/dashboard/")
 def dashboard():

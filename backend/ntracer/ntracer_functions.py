@@ -50,7 +50,6 @@ class NtracerFunctions:
                 state.cdn_url.geturl(),
                 state.dataset_id,
             )
-            print(x)
             new_point = x
         else:
             new_point = point
@@ -212,10 +211,18 @@ class NtracerFunctions:
             raise Warning("Cannot convert neuron to swc")
 
         neuron_id = state.coords.cdn_helper.add_neuron(neuron_swc, neuron_id)
+        if hasattr(state.coords, 'roots'):
+            state.coords.roots.dashboard_state.set_state_dict(state.dashboard_state)
         state.coords.new_state()
         state.coords.roots.actions.append(Action(ActionType.ADD_NEURON, neuron_id))
         state.coords.roots[neuron_id] = neuron
         NtracerFunctions.request_fileserver_update()
+
+        # need another state for versioning
+        if hasattr(state.coords, 'roots'):
+            state.coords.roots.dashboard_state.set_state_dict(state.dashboard_state)
+        state.coords.new_state()
+        state.coords.roots.actions.append(Action(ActionType.MODIFY_NEURON, neuron_id))
         return neuron_id
     
     @staticmethod
@@ -332,7 +339,8 @@ class NtracerFunctions:
                 else:
                     tree_keys.append(tree_key + "_" + str(idx))
                     tree_key = tree_key + "_" + str(idx)
-
+            
+            NtracerFunctions.change_coordinate_on_select(current_coords, coords.scale)
 
     @staticmethod
     @inject_state

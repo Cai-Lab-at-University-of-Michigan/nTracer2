@@ -1,10 +1,14 @@
 import { DashboardContext } from './DashboardReducer'
-import { useMemo, useContext } from 'react'
+import { useMemo, useContext, useRef, useEffect } from 'react'
 import { useTable } from 'react-table'
 import styled from 'styled-components/macro'
 
 export default function SomaTable({ somaList }) {
     const [dashboardState, dashboardDispatch] = useContext(DashboardContext)
+
+    // Track somaList change
+    const prevLastSomaRef = useRef(null)
+
     const data = useMemo(() => {
         if (dashboardState.selected_indexes.length != 1) return []
 
@@ -13,7 +17,32 @@ export default function SomaTable({ somaList }) {
                 label: el.neuron + ":" + Math.round(el.z_slice * (1000 / dashboardState.scale[2]))
             }
         })
-    }, [somaList, dashboardState.selected_indexes])
+    }, [somaList, dashboardState.selected_indexes, dashboardState.scale])
+
+    useEffect(() => {
+        if (dashboardState.selected_indexes.length === 1 && somaList.length > 0 && dashboardState.selected_point === null) {
+            const lastSoma = somaList[somaList.length - 1]
+            const prevLastSoma = prevLastSomaRef.current
+
+            if (!prevLastSoma ||
+                (prevLastSoma.neuron !== lastSoma.neuron ||
+                    prevLastSoma.z_slice !== lastSoma.z_slice)) {
+
+                // Auto-selec
+                dashboardDispatch({
+                    type: 'somaSelect',
+                    payload: {
+                        somaSelected: lastSoma.z_slice
+                    }
+                })
+            }
+        }
+
+        // Update the ref with the current last soma for the next render
+        prevLastSomaRef.current = somaList.length > 0 ?
+            { ...somaList[somaList.length - 1] } : null;
+
+    }, [somaList, dashboardDispatch, dashboardState.selected_indexes])
 
     const columns = useMemo(() => {
         return [
@@ -56,49 +85,49 @@ export default function SomaTable({ somaList }) {
     }
 
     return (
-        <WhiteContainer style={{width: 195, margin: 0, display: 'flex'}}>
-        <table {...getTableProps()} style={{height: 'fit-content'}}>
-            <thead>
-            {// Loop over the header rows
-            headerGroups.map(headerGroup => (
-                // Apply the header row props
-                <HeaderRow {...headerGroup.getHeaderGroupProps()}>
-                {// Loop over the headers in each row
-                headerGroup.headers.map(column => (
-                    // Apply the header cell props
-                    <th {...column.getHeaderProps()}>
-                    {// Render the header
-                    column.render('Header')}
-                    </th>
-                ))}
-                </HeaderRow>
-            ))}
-            </thead>
-            <tbody {...getTableBodyProps()}>
-            {// Loop over the table rows
-            rows.map((row, i) => {
-                // Prepare the row for display
-                prepareRow(row)
-                return (
-                // Apply the row props
-                <TableRow {...row.getRowProps()}
-                        onClick={()=>{onRowSelect(somaList[i].z_slice)}}
-                        isSelected={somaList[i].z_slice == dashboardState.selected_soma_z_slice}>
-                    {// Loop over the rows cells
-                    row.cells.map(cell => {
-                    // Apply the cell props
-                    return (
-                        <TableCell {...cell.getCellProps()}>
-                        {// Render the cell contents
-                        cell.render('Cell')}
-                        </TableCell>
-                    )
-                    })}
-                </TableRow>
-                )
-            })}
-            </tbody>
-        </table>
+        <WhiteContainer style={{ width: 195, margin: 0, display: 'flex' }}>
+            <table {...getTableProps()} style={{ height: 'fit-content' }}>
+                <thead>
+                    {// Loop over the header rows
+                        headerGroups.map(headerGroup => (
+                            // Apply the header row props
+                            <HeaderRow {...headerGroup.getHeaderGroupProps()}>
+                                {// Loop over the headers in each row
+                                    headerGroup.headers.map(column => (
+                                        // Apply the header cell props
+                                        <th {...column.getHeaderProps()}>
+                                            {// Render the header
+                                                column.render('Header')}
+                                        </th>
+                                    ))}
+                            </HeaderRow>
+                        ))}
+                </thead>
+                <tbody {...getTableBodyProps()}>
+                    {// Loop over the table rows
+                        rows.map((row, i) => {
+                            // Prepare the row for display
+                            prepareRow(row)
+                            return (
+                                // Apply the row props
+                                <TableRow {...row.getRowProps()}
+                                    onClick={() => { onRowSelect(somaList[i].z_slice) }}
+                                    isSelected={somaList[i].z_slice == dashboardState.selected_soma_z_slice}>
+                                    {// Loop over the rows cells
+                                        row.cells.map(cell => {
+                                            // Apply the cell props
+                                            return (
+                                                <TableCell {...cell.getCellProps()}>
+                                                    {// Render the cell contents
+                                                        cell.render('Cell')}
+                                                </TableCell>
+                                            )
+                                        })}
+                                </TableRow>
+                            )
+                        })}
+                </tbody>
+            </table>
         </WhiteContainer>
     )
 }
@@ -132,8 +161,8 @@ background: rgb(250,250,250);
 `
 
 const TableRow = styled.tr`
-background-color: ${(props)=>(props.isSelected) ? 'rgb(50, 50, 50)': 'white'};
-color: ${(props)=>(props.isSelected) ? 'rgb(230, 230, 230)': 'rgb(30, 30, 30)'};
+background-color: ${(props) => (props.isSelected) ? 'rgb(50, 50, 50)' : 'white'};
+color: ${(props) => (props.isSelected) ? 'rgb(230, 230, 230)' : 'rgb(30, 30, 30)'};
 :hover {
     background-color: rgb(50, 50, 50);
     color: rgb(230, 230, 230);

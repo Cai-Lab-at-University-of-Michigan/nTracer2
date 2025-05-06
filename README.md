@@ -14,10 +14,10 @@ Pending...
 
 | Key Combination          | Command                                    |
 |--------------------------|--------------------------------------------|
-| Ctrl/Alt + right-click   | Deselect current selections.               |
-| Ctrl + left-click        | Place selection box.                       |
+| Ctrl/Alt + right-click   | Deselect current selections                |
+| Ctrl + left-click        | Place selection box                        |
 | Alt + left-click         | Place selection box (with no auto shift)   |
-| 2 x left-click           | Select nearest point to mouse              |
+| Shift + left-click       | Select nearest point to mouse              |
 | A                        | Trace a neurite                            |
 | S                        | Trace a soma                               |
 | O                        | Complete a soma tracing                    |
