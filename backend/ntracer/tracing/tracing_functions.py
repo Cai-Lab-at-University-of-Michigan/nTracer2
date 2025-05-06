@@ -68,8 +68,7 @@ class TracingFunctions:
     @inject_state
     def _connect_points(state: NtracerState, start: tuple, end: tuple, is_soma: bool = False):
         if state.dashboard_state.is_soma_selected and not is_soma:
-            IndicatorFunctions.add_status_message("You can only make a soma tracing (s key) with a soma selected on the dashboard", "connect")
-            return
+            state.dashboard_state.selected_soma_z_slice = -1
         
         print("Running Astar:", start, end)
         try:
