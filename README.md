@@ -6,7 +6,9 @@ An interactive tool for reconstructing and analyzing complex neural networks fro
 
 ## Citation
 
-Pending...
+L A Walker<sup>\*</sup>, W J Lee<sup>\*</sup>, et al.
+*A browser-based platform for storage, visualization, and analysis of large-scale 3D images in HPC environments.*
+on bioRxiv: [https://www.biorxiv.org/content/10.1101/2024.10.04.616591v1](https://www.biorxiv.org/content/10.1101/2024.10.04.616591v1).
 
 ## Quick Reference
 
