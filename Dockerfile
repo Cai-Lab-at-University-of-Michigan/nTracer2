@@ -4,6 +4,7 @@ FROM python:3.10-slim AS backend-builder
 RUN apt-get update && apt-get install -y --no-install-recommends gcc g++
 RUN pip --no-cache-dir install cython
 RUN pip --no-cache-dir install --user neuroglancer ngauge flask flask-socketio numpy python-dotenv fastapi "uvicorn[standard]" sse-starlette httpx
+RUN pip --no-cache-dir install --user authlib python-jose[cryptography] itsdangerous
 COPY backend/compile_cython.py /app/compile_cython.py
 COPY backend/algorithm /app/algorithm
 WORKDIR /app
@@ -28,9 +29,9 @@ RUN mkdir /app
 
 ARG server_port
 ARG neuroglancer_port=8050
-ARG cdn_url=https://sonic2.cai-lab.org/data/
-ARG dataset_id=packed2
-ARG public_url=http://localhost
+ARG cdn_url=https://sonic.cai-lab.org/data/
+ARG dataset_id=102324_fly_3_merge
+ARG public_url=https://sonic.cai-lab.org/
 
 ENV CDN_URL=$cdn_url
 ENV CDN_URL_HOST=$cdn_url

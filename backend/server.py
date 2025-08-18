@@ -21,7 +21,7 @@ from ntracer.helpers import swc_helper
 
 from ntracer.ntracer_functions import NtracerFunctions
 from ntracer.ntracer_state import NtracerState
-from ntracer.state_injector import inject_state, get_state
+from ntracer.state_injector import inject_state, get_state, current_user_id
 from ntracer.tracing.deletion_functions import DeletionFunctions
 from ntracer.tracing.tracing_functions import TracingFunctions
 from ntracer.tracing.update_functions import UpdateFunctions
@@ -30,12 +30,24 @@ from ntracer.visualization.image import ImageFunctions
 from ntracer.visualization.indicator import IndicatorFunctions
 from ntracer.visualization.freehand import FreehandFunctions
 import os
+
+from authlib.integrations.starlette_client import OAuth
+from starlette.middleware.sessions import SessionMiddleware
+from starlette.responses import JSONResponse as StarletteJSONResponse
+from jose import JWTError, jwt
+from datetime import datetime, timedelta
+import httpx
+import secrets
+
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
+
+os.environ['HTTPS'] = 'on'
+
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
@@ -45,9 +57,254 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Add session middleware for OAuth state management
+app.add_middleware(
+    SessionMiddleware, 
+    secret_key=os.getenv('SESSION_SECRET_KEY', secrets.token_urlsafe(32))
+    )
+
+oauth = OAuth()
+
+# Configure Google OAuth
+google = oauth.register(
+    name='google',
+    client_id=os.getenv('GOOGLE_CLIENT_ID'),
+    client_secret=os.getenv('GOOGLE_CLIENT_SECRET'),
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+    authorize_url='https://accounts.google.com/o/oauth2/auth',
+    access_token_url='https://oauth2.googleapis.com/token',
+    userinfo_endpoint='https://openidconnect.googleapis.com/v1/userinfo',
+    client_kwargs={
+        'scope': 'openid email profile'
+    }
+)
+
+# Configure ORCID OAuth
+orcid = oauth.register(
+    name='orcid',
+    client_id=os.getenv('ORCID_CLIENT_ID'),
+    client_secret=os.getenv('ORCID_CLIENT_SECRET'),
+    authorize_url='https://orcid.org/oauth/authorize',
+    access_token_url='https://orcid.org/oauth/token',
+    client_kwargs={
+        'scope': '/authenticate'
+    }
+)
+# JWT configuration
+JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', secrets.token_urlsafe(32))
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRATION_HOURS = 24
+
 app.mount("/dashboard", StaticFiles(directory="dashboard", html=True), name="static")
-user_id = 0
-TOKEN = "ntracer2"
+
+# User storage (in production, use a proper database)
+authenticated_users = {}
+
+def create_access_token(user_data: dict):
+    """Create JWT access token for authenticated user"""
+    to_encode = user_data.copy()
+    expire = datetime.utcnow() + timedelta(hours=JWT_EXPIRATION_HOURS)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+    return encoded_jwt
+
+def verify_token(token: str):
+    """Verify JWT token and return user data"""
+    try:
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        return payload
+    except JWTError:
+        return None
+
+async def get_current_user_id(request) -> str:
+    user_id = request.session.get('user_id')
+    if user_id:
+        return user_id
+    
+    auth_header = request.headers.get('Authorization')
+    if auth_header and auth_header.startswith('Bearer '):
+        token = auth_header.split(' ')[1]
+        user_data = verify_token(token)  # Use your existing function
+        if user_data:
+            return user_data.get('id')
+    
+    return "anonymous"
+
+@app.middleware("http") 
+async def set_user_context(request, call_next):
+    user_id = await get_current_user_id(request)
+    token = current_user_id.set(user_id)
+    try:
+        response = await call_next(request)
+        return response
+    finally:
+        current_user_id.reset(token)
+
+@app.get("/auth/google")
+async def google_login(request: Request):
+    try:
+        state = secrets.token_urlsafe(32)
+        request.session['oauth_state'] = state
+        
+        redirect_uri = str(request.url_for('google_callback')).replace('http://', 'https://')
+        print(f"Google redirect URI: {redirect_uri}")
+        
+        return await google.authorize_redirect(request, redirect_uri, state=state)
+    except Exception as e:
+        print(f"Google auth error: {e}")
+        return RedirectResponse("/?error=google_auth_failed")
+    
+@app.get("/auth/google/callback")
+async def google_callback(request: Request):
+    try:
+        received_state = request.query_params.get('state')
+        stored_state = request.session.get('oauth_state')
+        if not received_state or received_state != stored_state:
+            return RedirectResponse("/?error=csrf_protection")
+            
+        token = await google.authorize_access_token(request)
+        print(f"Google token received: {token}")
+        
+        async with httpx.AsyncClient() as client:
+            headers = {'Authorization': f'Bearer {token["access_token"]}'}
+            response = await client.get(
+                'https://openidconnect.googleapis.com/v1/userinfo',
+                headers=headers
+            )
+            
+            if response.status_code == 200:
+                user_info = response.json()
+                print(f"Google user info: {user_info}")
+                
+                user_data = {
+                    'id': user_info.get('sub'),
+                    'email': user_info.get('email'),
+                    'name': user_info.get('name'),
+                    'picture': user_info.get('picture'),
+                    'provider': 'google'
+                }
+                
+                authenticated_users[user_data['id']] = user_data
+                access_token = create_access_token(user_data)
+
+                request.session['access_token'] = access_token
+                request.session['user_id'] = user_data['id']
+                
+                # FIX: Don't hardcode viewer URL, redirect to index to create user-specific viewer
+                return RedirectResponse("/")  # Let index() create user-specific viewer
+            else:
+                print(f"Failed to get user info: {response.status_code}")
+                return RedirectResponse("/?error=failed_to_get_user_info")
+        
+    except Exception as e:
+        print(f"Google callback error: {e}")
+        return RedirectResponse("/?error=authentication_failed")
+    
+@app.get("/auth/orcid")
+async def orcid_login(request: Request):
+    try:
+        state = secrets.token_urlsafe(32)
+        request.session['oauth_state'] = state
+        
+        redirect_uri = str(request.url_for('orcid_callback')).replace('http://', 'https://')
+        print(f"ORCID redirect URI: {redirect_uri}")
+        
+        return await orcid.authorize_redirect(request, redirect_uri, state=state)
+    except Exception as e:
+        print(f"ORCID auth error: {e}")
+        return RedirectResponse("/?error=orcid_auth_failed")
+
+@app.get("/auth/orcid/callback")
+async def orcid_callback(request: Request):
+    try:
+        received_state = request.query_params.get('state')
+        stored_state = request.session.get('oauth_state')
+        if not received_state or received_state != stored_state:
+            return RedirectResponse("/?error=csrf_protection")
+            
+        token = await orcid.authorize_access_token(request)
+        print(f"ORCID token received: {token}")
+        
+        orcid_id = token.get('orcid')
+        access_token_value = token.get('access_token')
+        
+        if orcid_id and access_token_value:
+            async with httpx.AsyncClient() as client:
+                headers = {
+                    'Authorization': f'Bearer {access_token_value}',
+                    'Accept': 'application/json'
+                }
+                response = await client.get(
+                    f'https://pub.orcid.org/v3.0/{orcid_id}/person',
+                    headers=headers
+                )
+                
+                if response.status_code == 200:
+                    orcid_data = response.json()
+                    name_data = orcid_data.get('name', {})
+                    
+                    user_data = {
+                        'id': orcid_id,
+                        'email': orcid_id + '@orcid.org',
+                        'name': f"{name_data.get('given-names', {}).get('value', '')} {name_data.get('family-name', {}).get('value', '')}".strip() or orcid_id,
+                        'orcid_id': orcid_id,
+                        'provider': 'orcid'
+                    }
+                else:
+                    user_data = {
+                        'id': orcid_id,
+                        'email': orcid_id + '@orcid.org',
+                        'name': orcid_id,
+                        'orcid_id': orcid_id,
+                        'provider': 'orcid'
+                    }
+                
+                authenticated_users[user_data['id']] = user_data
+                access_token = create_access_token(user_data)
+                
+                request.session['access_token'] = access_token
+                request.session['user_id'] = user_data['id']
+                
+                # FIX: Don't hardcode viewer URL, redirect to index to create user-specific viewer
+                return RedirectResponse("/")  # Let index() create user-specific viewer
+        
+        return RedirectResponse("/?error=authentication_failed")
+        
+    except Exception as e:
+        print(f"ORCID callback error: {e}")
+        return RedirectResponse("/?error=authentication_failed")
+    
+@app.get("/auth/logout")
+async def logout(request: Request):
+    request.session.clear()
+    return RedirectResponse("/")
+
+@app.get("/api/validate-token")
+async def validate_token(request: Request):
+    """Validate JWT token"""
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return StarletteJSONResponse({'error': 'No token provided'}, status_code=401)
+    
+    token = auth_header.split(' ')[1]
+    user_data = verify_token(token)
+    
+    if user_data:
+        return StarletteJSONResponse({'valid': True, 'user': user_data})
+    else:
+        return StarletteJSONResponse({'error': 'Invalid token'}, status_code=401)
+
+@app.get("/auth/status")
+async def auth_status_simple(request: Request):
+    access_token = request.session.get('access_token')
+    user_id = request.session.get('user_id')
+    
+    if access_token and user_id and user_id in authenticated_users:
+        return JSONResponse({
+            'authenticated': True, 
+            'user': authenticated_users[user_id]
+        })
+    return JSONResponse({'authenticated': False})
 
 def clear_points():
     FreehandFunctions.clear_points()
@@ -57,8 +314,7 @@ def clear_points():
 
 app.mount("/viewer", StaticFiles(directory="landing", html=True), name="viewer")
 @app.get("/", response_model=None)
-async def index() -> RedirectResponse:
-    global user_id
+async def index(request: Request) -> RedirectResponse:
     state = get_state()
     coords = state.coords
     dashboard_state = state.dashboard_state
@@ -76,8 +332,9 @@ async def index() -> RedirectResponse:
             bind_port=state.neuroglancer_port,
         )
 
-        viewer = neuroglancer.Viewer(token=TOKEN)
-        user_id+=1
+        user_id = await get_current_user_id(request)
+        user_token = f"ntracer_{user_id}_{secrets.token_urlsafe(8)}"
+        viewer = neuroglancer.Viewer(token=user_token)
         state.viewer = viewer
         ImageFunctions.image_init()
         await NtracerFunctions.download_from_database(state.coords)
@@ -118,8 +375,7 @@ async def index() -> RedirectResponse:
             s.input_event_bindings.data_view["keyo"] = "complete soma"
 
     viewer_url = quote_plus(
-        urlparse(posixpath.join(os.environ["PUBLIC_URL"], f"v/{TOKEN}/"))
-        ._replace(netloc=f"{urlparse(os.environ['PUBLIC_URL']).hostname}:{state.neuroglancer_port}")
+        urlparse(posixpath.join(os.environ["PUBLIC_URL"], f"ng/v/{state.viewer.token}/"))
         .geturl()
     )
     dashboard_url = quote_plus("/dashboard")

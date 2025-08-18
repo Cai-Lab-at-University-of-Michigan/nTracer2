@@ -6,27 +6,190 @@
     <title>Spectral Connectomics Landing Page</title>
 
     <script type="text/javascript">
+        // Authentication state management
+        let authState = {
+            isAuthenticated: false,
+            user: null,
+            accessToken: null
+        };
+
         // Load data
         function loadDataset(url) {
             var iframe = document.getElementById('interface');
-            iframe.src = url;
+            iframe.src = decodeURIComponent(url);
+            console.log('Loading iframe with URL:', decodeURIComponent(url));
         }
 
-        // Toggle nTracer2 window
-        let newWindow = null; // This will hold the reference to your new window
+        // Check authentication status
+        async function checkAuthStatus() {
+            try {
+                const response = await fetch('/auth/status', {
+                    method: 'GET',
+                    credentials: 'include' // Include cookies for session
+                });
+                
+                console.log('Auth status response:', response.status);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Auth status data:', data);
+                    
+                    if (data.authenticated) {
+                        authState.isAuthenticated = true;
+                        authState.user = data.user;
+                        console.log('User authenticated:', authState.user);
+                    } else {
+                        console.log('User not authenticated');
+                        authState.isAuthenticated = false;
+                        authState.user = null;
+                    }
+                } else {
+                    console.log('Auth status check failed with status:', response.status);
+                    authState.isAuthenticated = false;
+                    authState.user = null;
+                }
+            } catch (error) {
+                console.error('Auth status check failed:', error);
+                authState.isAuthenticated = false;
+                authState.user = null;
+            }
+            
+            updateUI();
+        }
 
-        window.addEventListener('DOMContentLoaded', function () {
+        // Update UI based on authentication state
+        function updateUI() {
+            console.log('UpdateUI called, authState:', authState);
+            
+            const dashboardButton = document.getElementById('dashboardButton');
+            const loginButton = document.getElementById('loginButton');
+            const userInfo = document.getElementById('userInfo');
+            const logoutButton = document.getElementById('logoutButton');
+
+            console.log('Elements found:', {
+                dashboardButton: !!dashboardButton,
+                loginButton: !!loginButton, 
+                userInfo: !!userInfo,
+                logoutButton: !!logoutButton
+            });
+
+            if (authState.isAuthenticated) {
+                console.log('User is authenticated, updating UI...');
+                if (dashboardButton) {
+                    dashboardButton.style.display = 'inline-block';
+                    console.log('Dashboard button shown');
+                }
+                if (loginButton) {
+                    loginButton.style.display = 'none';
+                    console.log('Login button hidden');
+                }
+                if (userInfo) {
+                    userInfo.style.display = 'inline-block';
+                    console.log('User info shown');
+                }
+                if (logoutButton) {
+                    logoutButton.style.display = 'inline-block';
+                    console.log('Logout button shown');
+                }
+                
+                if (authState.user && userInfo) {
+                    userInfo.textContent = `Welcome, ${authState.user.name || authState.user.email}!`;
+                    console.log('User info text set:', userInfo.textContent);
+                }
+            } else {
+                console.log('User not authenticated, showing login...');
+                if (dashboardButton) dashboardButton.style.display = 'none';
+                if (loginButton) loginButton.style.display = 'inline-block';
+                if (userInfo) userInfo.style.display = 'none';
+                if (logoutButton) logoutButton.style.display = 'none';
+            }
+
+            loadViewerIfReady();
+        }
+
+        // Load viewer if URL parameters are present
+        function loadViewerIfReady() {
             var urlParams = new URLSearchParams(window.location.search);
             var viewer = urlParams.get('viewer');
             var dashboardUrl = urlParams.get('dashboard');
 
-            if (viewer == null || dashboardUrl == null) {
-                console.log("No viewer or dashboard URL provided")
-                return;
+            if (viewer && dashboardUrl) {
+                const dashboardButton = document.getElementById('dashboardButton');
+                if (dashboardButton) {
+                    dashboardButton.href = decodeURIComponent(dashboardUrl);
+                }
+                
+                loadDataset(viewer);
             }
+        }
 
-            document.getElementById('dashboardButton').href = dashboardUrl;
-            loadDataset(urlParams.get('viewer'));
+        // Login functions
+        function loginWithGoogle() {
+            const currentParams = new URLSearchParams(window.location.search);
+            const returnUrl = currentParams.toString() ? 
+                `${window.location.pathname}?${currentParams.toString()}` : 
+                window.location.pathname;
+            
+            window.location.href = `/auth/google?return_url=${encodeURIComponent(returnUrl)}`;
+        }
+
+        function loginWithORCID() {
+            const currentParams = new URLSearchParams(window.location.search);
+            const returnUrl = currentParams.toString() ? 
+                `${window.location.pathname}?${currentParams.toString()}` : 
+                window.location.pathname;
+            
+            window.location.href = `/auth/orcid?return_url=${encodeURIComponent(returnUrl)}`;
+        }
+
+        // Logout function
+        async function logout() {
+            try {
+                await fetch('/auth/logout', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+            } catch (error) {
+                console.error('Logout failed:', error);
+            }
+            
+            // Clear client-side state
+            authState.isAuthenticated = false;
+            authState.user = null;
+            authState.accessToken = null;
+            
+            // Clear the iframe
+            const iframe = document.getElementById('interface');
+            if (iframe) iframe.src = '';
+            
+            updateUI();
+        }
+
+        // Handle OAuth callback
+        function handleOAuthCallback() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const error = urlParams.get('error');
+
+            if (error) {
+                console.error('OAuth error:', error);
+                alert('Authentication failed. Please try again.');
+            }
+            
+            // Clean the URL and check auth status
+            window.history.replaceState({}, document.title, window.location.pathname);
+            checkAuthStatus();
+        }
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', function () {
+            // Check if this is an OAuth callback
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('error') || urlParams.get('code')) {
+                handleOAuthCallback();
+            } else {
+                loadViewerIfReady();
+                checkAuthStatus();
+            }
         });
 
     </script>
@@ -43,7 +206,6 @@
             padding: 0;
             overflow-x: hidden;
             font-family: Arial, sans-serif;
-
         }
 
         #header {
@@ -65,6 +227,8 @@
         #interface {
             width: 100%;
             flex: auto;
+            border: none;
+            display: block;
         }
 
         .logo {
@@ -72,7 +236,6 @@
             width: auto;
             margin-right: 20px;
         }
-
 
         .nav-button {
             padding: 3px 6px;
@@ -85,14 +248,70 @@
             font-weight: bold;
             font-size: 18px;
             text-decoration: none;
-
+            margin-left: 10px;
         }
 
         .nav-button:hover {
             background-color: #000;
-            /* Changes background to black on hover */
-            color: #fff;
-            /* Changes text color to white on hover */
+            color: #ffffff;
+        }
+
+        .nav-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #userInfo {
+            color: #da18b6;
+            font-weight: bold;
+            font-size: 14px;
+            display: none;
+        }
+
+        .login-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .login-options {
+            display: none;
+            position: absolute;
+            right: 0;
+            background-color: #f5f4f0;
+            min-width: 200px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        .login-options button {
+            background: none;
+            border: none;
+            padding: 12px 16px;
+            text-align: left;
+            display: block;
+            width: 100%;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .login-options button:hover {
+            color: #ffffff;
+            background-color: #000000;
+        }
+
+        .login-dropdown:hover .login-options {
+            display: block;
+        }
+
+        #dashboardButton {
+            display: none;
+        }
+
+        #logoutButton {
+            display: none;
         }
     </style>
 
@@ -103,7 +322,26 @@
     <div id="header">
         <img src="./img/logo.png" alt="Spectral Connectomics Logo; A brain cartoon with a neural network drawn inside." class="logo">
 
-        <a id="dashboardButton" class="nav-button" target="_blank">Open Dashboard</a>
+        <div class="nav-controls">
+            <span id="userInfo"></span>
+            
+            <div id="loginButton" class="login-dropdown">
+                <button class="nav-button">Login</button>
+                <div class="login-options">
+                    <button onclick="loginWithGoogle()">
+                        <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google" style="width: 16px; height: 16px; margin-right: 8px; vertical-align: middle;">
+                        Login with Google
+                    </button>
+                    <button onclick="loginWithORCID()">
+                        <img src="https://orcid.org/sites/default/files/images/orcid_16x16.png" alt="ORCID" style="width: 16px; height: 16px; margin-right: 8px; vertical-align: middle;">
+                        Login with ORCID
+                    </button>
+                </div>
+            </div>
+
+            <button id="logoutButton" class="nav-button" onclick="logout()">Logout</button>
+            <a id="dashboardButton" class="nav-button" target="_blank">Open Dashboard</a>
+        </div>
     </div>
 
     <iframe id="interface"></iframe>

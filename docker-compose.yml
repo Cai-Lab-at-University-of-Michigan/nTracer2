@@ -7,3 +7,12 @@ services:
     ports:
       - "8050:8050"
       - "8085:8085"
+    env_file:
+      - .env
+    environment:
+      - SESSION_SECRET_KEY=${SESSION_SECRET_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - ORCID_CLIENT_ID=${ORCID_CLIENT_ID}
+      - ORCID_CLIENT_SECRET=${ORCID_CLIENT_SECRET}
