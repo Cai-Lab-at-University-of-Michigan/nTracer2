@@ -24,7 +24,16 @@ class FreehandFunctions:
     def clear_points(state: NtracerState):
         FreehandFunctions.clear_freehand_state()
         FreehandFunctions.update_canvas()
+        FreehandFunctions.clear_roi()
         FreehandFunctions.clear_status_messages()
+
+    @staticmethod
+    @inject_state
+    def clear_roi(state: NtracerState):
+        with state.viewer.txn() as s:
+            s.layers["ROI"] = neuroglancer.viewer_state.AnnotationLayer(
+                annotations=[]
+            )
 
     @staticmethod
     @inject_state
@@ -44,6 +53,8 @@ class FreehandFunctions:
     @staticmethod
     @inject_state
     def clear_freehand_state(state: NtracerState):
+        state.freehand_state.roi_start_point_pixel = None
+        state.freehand_state.roi_end_point_pixel = None
         state.freehand_state.now_at = None
         state.freehand_state.is_dashboard_point_selected = False
         state.freehand_state.traversed_points_pixel = []
@@ -165,6 +176,34 @@ class FreehandFunctions:
             )
 
             s.position[2] = state.freehand_state.now_at[2]
+
+    @staticmethod
+    @inject_state
+    def update_roi_indicator(
+        state:NtracerState, lines: list[neuroglancer.viewer_state.LineAnnotation]
+    ) -> None:
+        with state.viewer.txn() as s:
+            s.dimensions = neuroglancer.CoordinateSpace(
+                names=["x", "y", "z"],
+                units=["nm", "nm", "nm"],
+                scales=state.coords.scale,
+            )
+            
+            s.layers["ROI"] = neuroglancer.viewer_state.AnnotationLayer(
+                annotations=lines,
+                annotation_color="#fcb000",
+                shader="""
+            void setEndpointMarkerBorderColor(vec4 rgba);
+            void setLineWidth(float widthInScreenPixels);
+            void setEndpointMarkerSize(float diameter);
+            void main() {
+            setColor(defaultColor());
+            setEndpointMarkerSize(3.0);
+            setLineWidth(3.0);
+            setEndpointMarkerBorderColor(vec4(0,0,0,0));
+            }
+            """,
+            )
 
     @staticmethod
     @inject_state

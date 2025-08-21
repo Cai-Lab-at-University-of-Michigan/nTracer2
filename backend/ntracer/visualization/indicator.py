@@ -170,6 +170,45 @@ class IndicatorFunctions:
         lines.append(line)
 
         return lines
+    
+    @staticmethod
+    def roi_indicator(
+        start_point: tuple[int, int, int], end_point: tuple[int, int, int], name: str
+    ) -> list[LineAnnotation]:
+        lines = []
+        
+        x1, y1, z1 = start_point
+        x2, y2, z2 = end_point
+        
+        min_x, max_x = min(x1, x2), max(x1, x2)
+        min_y, max_y = min(y1, y2), max(y1, y2)
+        min_z, max_z = min(z1, z2), max(z1, z2)
+        
+        corners = [
+            (min_x, min_y, min_z),
+            (max_x, min_y, min_z),
+            (max_x, max_y, min_z),
+            (min_x, max_y, min_z),
+            (min_x, min_y, max_z),
+            (max_x, min_y, max_z),
+            (max_x, max_y, max_z),
+            (min_x, max_y, max_z),
+        ]
+        
+        edges = [
+            (0, 1), (1, 2), (2, 3), (3, 0),
+            (4, 5), (5, 6), (6, 7), (7, 4),
+            (0, 4), (1, 5), (2, 6), (3, 7)
+        ]
+        
+        for i, (start_idx, end_idx) in enumerate(edges):
+            line = neuroglancer.viewer_state.LineAnnotation()
+            line.point_a = list(corners[start_idx])
+            line.point_b = list(corners[end_idx])
+            line.id = f"{name}_{i}"
+            lines.append(line)
+        
+        return lines
 
     @staticmethod
     @inject_state
@@ -177,7 +216,7 @@ class IndicatorFunctions:
         state.startingPoint = None
         s.layers["Selection Boxes"] = neuroglancer.viewer_state.AnnotationLayer(
             annotations=[],
-            annotation_color="#ff2400 ",
+            annotation_color="#ff2400",
             shader="""
     void setEndpointMarkerBorderColor(vec4 rgba);
     void setLineWidth(float widthInScreenPixels);
