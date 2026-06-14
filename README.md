@@ -44,7 +44,7 @@ The nTracer2 Docker image uses a collection of environment variables to specify 
 
 ## Installing and starting nTracer2
 
-1. Before beginning, ensure that your compute has sufficient RAM and processing power to support nTracer2. We suggest a minimum of 8GB of RAM for a Mac and 16GB for Windows, however your experience may vary. Also ensure that you have a high speed internet connection, as low quality wi-fi is the most common cause of complaint
+1. Before beginning, ensure that your compute has sufficient RAM and processing power to support nTracer2. We suggest a minimum of 8GB of RAM for a Mac and 16GB for Windows, however your experience may vary. Also ensure that you have a high speed internet connection, as low quality wi-fi is the most common cause of complaint when tracing datasets that are located on remote servers, however this is not relevant if you are storing data on your local machine.
 
     - You can use tools like [fast.com](fast.com) to test your internet speed. Speeds under ~50mbps tend to lead to slow tracing experiences.
 
@@ -73,6 +73,7 @@ The nTracer2 Docker image uses a collection of environment variables to specify 
 4. To specifying a different dataset or change the port used by the server, use the configuration table presented above in this guide. As a reference, here are three ways the server can be configured:
     1. One remote server hosts both image data and tracing database:
         - Set `DATASET_ID` to the name of the dataset of interest.
+            - A sample SISF-converted dataset is available at [this link](https://www.dropbox.com/scl/fi/5yi7h2mo5cs2hrlja4uic/sisf_sample.zip?rlkey=trph3gva10o37no3a00qsdvrq&st=lgnfxx21&dl=0).
         - Change `CDN_URL` to the URL of the CDN server.
     2. One remote server hosts the image data and tracing database is served locally:
         - Set `DATASET_ID` to the name of the dataset of interest.
@@ -84,7 +85,7 @@ The nTracer2 Docker image uses a collection of environment variables to specify 
         - Change `CDN_URL` and `CDN_URL_LOCAL` to the path to the CDN Docker container (example: `http://172.17.0.2:6000`).
         - Change `CDN_URL_HOST` and `CDN_URL_LOCAL_HOST` to the path to the forwarded HTTP port from the CDN Docker container (example: `http://localhost:8080`).
 
-5. Open a browser (Chrome or Chromium are recommended) and navigate to [localhost:8085/dashboard]( localhost:8085/dashboard) where `8085` can be replaced with an alternate port if chosen above.
+5. Open a browser (Chrome or Chromium are recommended for best compatibility) and navigate to [localhost:8085/dashboard]( localhost:8085/dashboard) where `8085` can be replaced with an alternate port if chosen above.
 
 6. The resulting window should show the tracing neuroglancer window with a custom border: ![](docs/startup_window.png)
 
