@@ -177,6 +177,18 @@ class NtracerFunctions:
             FreehandFunctions.update_box_indicator(lines)
 
     @staticmethod
+    @inject_state
+    def hold_keyb(state: NtracerState, action_state: ActionState):
+        if action_state.mouse_voxel_coordinates is not None: 
+            new_point = tuple(map(int, action_state.mouse_voxel_coordinates))
+            if state.freehand_state.roi_start_point_pixel is None:
+                state.freehand_state.roi_start_point_pixel = new_point
+            else:
+                state.freehand_state.roi_end_point_pixel = new_point
+                lines = IndicatorFunctions.roi_indicator(state.freehand_state.roi_start_point_pixel, new_point, "roi")
+                FreehandFunctions.update_roi_indicator(lines)
+
+    @staticmethod
     @print_time("DB")
     async def download_from_database(
         coords: Coords,

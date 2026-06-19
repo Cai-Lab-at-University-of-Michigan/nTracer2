@@ -93,6 +93,7 @@ async def index() -> RedirectResponse:
         viewer.actions.add("undo", lambda s: Versioning.undo())
         viewer.actions.add("redo", lambda s: Versioning.redo())
         viewer.actions.add("freehand draw", lambda s: NtracerFunctions.hold_keyf(s))
+        viewer.actions.add("add roi", lambda s: NtracerFunctions.hold_keyb(s))
         viewer.actions.add("add point", lambda s: NtracerFunctions.ctrl_left_click(s))
         viewer.actions.add("add point no shift", lambda s: NtracerFunctions.ctrl_left_click(s, no_mean_shift=True))
         viewer.actions.add("connect/commit points", lambda s: TracingFunctions.connect_or_commit_points())
@@ -107,6 +108,7 @@ async def index() -> RedirectResponse:
             s.input_event_bindings.viewer["control+keyz"] = "undo"
             s.input_event_bindings.viewer["control+keyy"] = "redo"
             s.input_event_bindings.viewer["keyf"] = "freehand draw"
+            s.input_event_bindings.viewer["keyb"] = "add roi"
             s.input_event_bindings.data_view["control+mousedown0"] = "add point"
             s.input_event_bindings.data_view["alt+mousedown0"] = "add point no shift"
             s.input_event_bindings.data_view["keya"] = "connect/commit points"
@@ -521,6 +523,50 @@ async def import_swc(request: Request):
             content={"success": False, "message": f"Error importing SWC: {str(e)}"}
         )
 
+@app.get("/api/layer_info")
+async def layer_info(request: Request): 
+    state = get_state() 
+    res = {} 
+    try: 
+        layers = [] 
+        with state.viewer.txn() as s: 
+            for layer in s.layers: 
+                if layer.type in ['image', 'segmentation']: 
+                    urls = [entry["url"] for entry in layer.source.to_json()] 
+                    layers.append({ "id": layer.name, "url": urls[0] }) 
+                res['layers'] = layers 
+    except Exception as e:
+        print(e)
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "message": f"Error retrieving layer info: {str(e)}"}
+        )
+    
+    return res
+
+@app.get("/api/roi_info")
+async def roi_data(request: Request): 
+    state = get_state() 
+    res = {} 
+    try: 
+        if state.freehand_state.roi_start_point_pixel is not None and state.freehand_state.roi_end_point_pixel is not None:
+            x1, y1, z1 = state.freehand_state.roi_start_point_pixel 
+            x2, y2, z2 = state.freehand_state.roi_end_point_pixel 
+            min_x, max_x = min(x1, x2), max(x1, x2) 
+            min_y, max_y = min(y1, y2), max(y1, y2) 
+            min_z, max_z = min(z1, z2), max(z1, z2) 
+            res['roi'] = { "x": [min_x, max_x], "y": [min_y, max_y], "z": [min_z, max_z] }
+
+    except Exception as e:
+        print(e)
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "message": f"Error building ROI data: {str(e)}"}
+        )
+    
+    return res
+        
+        
 @app.get("/dashboard/")
 def dashboard():
     return send_file("dashboard/build/index.html")
